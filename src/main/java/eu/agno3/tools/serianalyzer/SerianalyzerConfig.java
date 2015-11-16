@@ -322,7 +322,15 @@ public class SerianalyzerConfig {
      * @return the maximum numer of call traces to output per instance
      */
     public int getMaxDisplayDumps () {
-        return 5;
+        return 20;
+    }
+
+
+    /**
+     * @return whether to types with not directly reachable initializers
+     */
+    public boolean isFilterNonReachableInitializers () {
+        return false;
     }
 
 }

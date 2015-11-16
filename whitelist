@@ -13,8 +13,9 @@ N java.io.ObjectInputStream::bytesToDoubles [([BI[DII)V]
 N java.io.ObjectOutputStream::floatsToBytes [([FI[BII)V]
 N java.io.ObjectOutputStream::doublesToBytes [([DI[BII)V]
 
-# might get tainted some times
+# these might get tainted some times
 C java.io.ObjectInputStream->resolveClass [(Ljava/io/ObjectStreamClass;)Ljava/lang/Class;]
+C java.io.ObjectInputStream->readClassDesc [(Z)Ljava/io/ObjectStreamClass;]
 # this is (hopefully) is the original ObjectInputStreams's input stream 
 C java.io.ObjectInputStream$PeekInputStream->read [([BII)I]
 C java.io.ObjectInputStream$PeekInputStream->readFully [([BII)V]
@@ -38,10 +39,14 @@ N java.lang.Class->getInterfaces0 [()[Ljava/lang/Class;]
 N java.lang.Class->getDeclaredMethods0 [(Z)[Ljava/lang/reflect/Method;]
 N java.lang.Class->getDeclaredFields0 [(Z)[Ljava/lang/reflect/Field;]
 N java.lang.Class->getDeclaredConstructors0 [(Z)[Ljava/lang/reflect/Constructor;]
+C java.lang.Class->getConstructor0 [([Ljava/lang/Class;I)Ljava/lang/reflect/Constructor;]
 N java.lang.Class->getSigners [()[Ljava/lang/Object;]
 N java.lang.Class->getConstantPool [()Lsun/reflect/ConstantPool;]
 N java.lang.Class->getGenericSignature0 [()Ljava/lang/String;]
 N java.lang.Class->getRawAnnotations [()[B]
+C java.lang.Class::checkInitted [()V]
+C java.lang.Class::copyFields [([Ljava/lang/reflect/Field;)[Ljava/lang/reflect/Field;]
+C java.lang.Class->getEnumConstantsShared [()[Ljava/lang/Object;]
 
 N java.lang.Throwable->getStackTraceElement [(I)Ljava/lang/StackTraceElement;]
 N java.lang.Throwable->getStackTraceDepth [()I]
@@ -68,7 +73,6 @@ N java.lang.Thread::currentThread [()Ljava/lang/Thread;]
 N java.lang.Thread->isInterrupted [(Z)Z]
 N java.lang.Thread::yield [()V]
 
-#C java.lang.Object-><init> [()V]
 N java.lang.Object->hashCode [()I]
 N java.lang.Object->clone [()Ljava/lang/Object;]
 N java.lang.Object->getClass [()Ljava/lang/Class;]
@@ -85,28 +89,143 @@ N java.lang.Thread::holdsLock [(Ljava/lang/Object;)Z]
 
 N java.net.NetworkInterface::getByName0 [(Ljava/lang/String;)Ljava/net/NetworkInterface;]
 
-C java.nio.DirectByteBuffer->get [()B]
-C java.nio.DirectDoubleBufferU->get [(I)D]
-C java.nio.DirectFloatBufferU->get [(I)F]
+N sun.misc.MessageUtils::toStderr [(Ljava/lang/String;)V]
+N sun.reflect.Reflection::getCallerClass [()Ljava/lang/Class;]
+N sun.reflect.Reflection::getClassAccessFlags [(Ljava/lang/Class;)I]
+N sun.nio.fs.UnixNativeDispatcher::strerror [(I)[B]
 
-C java.util.concurrent.ThreadLocalRandom::current [()Ljava/util/concurrent/ThreadLocalRandom;]
-C java.util.concurrent.ThreadLocalRandom::nextSecondarySeed [()I] 
-C java.util.concurrent.ThreadLocalRandom::getProbe [()I]
 
-# This might be an issue
-C java.lang.reflect.Field->get [(Ljava/lang/Object;)Ljava/lang/Object;] 
-
+# Safe unsafe methods, would be better to whitelist the callers but not right now
 N sun.misc.Unsafe->compareAndSwapInt [(Ljava/lang/Object;JII)Z]
 N sun.misc.Unsafe->compareAndSwapLong [(Ljava/lang/Object;JJJ)Z]
 N sun.misc.Unsafe->compareAndSwapObject [(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z]
 N sun.misc.Unsafe->copyMemory [(Ljava/lang/Object;JLjava/lang/Object;JJ)V]
 N sun.misc.Unsafe->ensureClassInitialized [(Ljava/lang/Class;)V]
+N sun.misc.Unsafe->throwException [(Ljava/lang/Throwable;)V]
+N sun.misc.Unsafe->getByte [(J)B]
+N sun.misc.Unsafe->getShort [(J)S]
+N sun.misc.Unsafe->getIntVolatile [(Ljava/lang/Object;J)I]
+N sun.misc.Unsafe->putInt [(Ljava/lang/Object;JI)V]
+N sun.misc.Unsafe->putIntVolatile [(Ljava/lang/Object;JI)V]
+N sun.misc.Unsafe->getLong [(Ljava/lang/Object;J)J]
+N sun.misc.Unsafe->putLong [(Ljava/lang/Object;JJ)V]
+N sun.misc.Unsafe->getLongVolatile [(Ljava/lang/Object;J)J]
+N sun.misc.Unsafe->putLongVolatile [(Ljava/lang/Object;JJ)V]
+N sun.misc.Unsafe->putOrderedObject [(Ljava/lang/Object;JLjava/lang/Object;)V] 
+N sun.misc.Unsafe->getObjectVolatile [(Ljava/lang/Object;J)Ljava/lang/Object;]
+N sun.misc.Unsafe->putObject [(Ljava/lang/Object;JLjava/lang/Object;)V] 
+N sun.misc.Unsafe->putObjectVolatile [(Ljava/lang/Object;JLjava/lang/Object;)V]
+N sun.misc.Unsafe->unpark [(Ljava/lang/Object;)V] T[T]
+N sun.misc.Unsafe->park [(ZJ)V] U[UT]
 
+N sun.reflect.ConstantPool->getUTF8At0 [(Ljava/lang/Object;I)Ljava/lang/String;]
+N sun.reflect.ConstantPool->getLongAt0 [(Ljava/lang/Object;I)J]
+N sun.reflect.ConstantPool->getIntAt0 [(Ljava/lang/Object;I)I]
+N sun.reflect.ConstantPool->getFloatAt0 [(Ljava/lang/Object;I)F]
+N sun.reflect.ConstantPool->getDoubleAt0 [(Ljava/lang/Object;I)D]
+N sun.reflect.ConstantPool->getClassAt0 [(Ljava/lang/Object;I)Ljava/lang/Class;]
+
+C java.util.concurrent.ThreadLocalRandom::current [()Ljava/util/concurrent/ThreadLocalRandom;]
+C java.util.concurrent.ThreadLocalRandom::nextSecondarySeed [()I] 
+C java.util.concurrent.ThreadLocalRandom::getProbe [()I]
+
+# This might be an issue if used wildly
+C java.lang.reflect.Field->get [(Ljava/lang/Object;)Ljava/lang/Object;] 
+
+# clones TimeZone, type not detected, privileged
+C java.util.Calendar->clone [()Ljava/lang/Object;] 
+C java.util.Calendar->readObject [(Ljava/io/ObjectInputStream;)V]
 
 S java.math.BigInteger::getRadixConversionCache [(II)Ljava/math/BigInteger;]
 S javax.swing.AbstractAction::shouldReconfigure [(Ljava/beans/PropertyChangeEvent;)Z]
 S java.lang.Class::getReflectionFactory [()Lsun/reflect/ReflectionFactory;]
 S java.lang.SecurityManager->checkPackageAccess [(Ljava/lang/String;)V]
+
+
+#
+# DEFINITELY VULNERABLE
+#
+C sun.rmi.transport.DGCClient$EndpointEntry-><init> [(Lsun/rmi/transport/Endpoint;)V]
+C sun.rmi.transport.DGCImpl_Stub->dirty [([Ljava/rmi/server/ObjID;JLjava/rmi/dgc/Lease;)Ljava/rmi/dgc/Lease;]
+# CHECK: Might stack into JRMP proxying with the above 
+C java.rmi.server.RemoteObjectInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+
+
+#
+# BAD
+#
+# Clones by serialization using default function
+C org.apache.commons.collections4.functors.PrototypeFactory$PrototypeSerializationFactory->create [()Ljava/io/Serializable;]
+# this is totally not thread-safe, but the impact should be marginal
+S com.sun.org.apache.bcel.internal.classfile.Utility::signatureToString [(Ljava/lang/String;Z)Ljava/lang/String;]
+
+
+
+#
+# DISPUTABLE
+#
+C org.apache.commons.collections4.map.MultiValueMap$ReflectionFactory->create [()Ljava/lang/Object;]
+# potential resource exhaustion, logging in reachable methods
+C com.sun.jmx.snmp.IPAcl.NetMaskImpl->equals [(Ljava/lang/Object;)Z]
+C javax.management.modelmbean.DescriptorSupport->getFieldValues [([Ljava/lang/String;)[Ljava/lang/Object;]
+C javax.management.modelmbean.DescriptorSupport->getFieldNames [()[Ljava/lang/String;]
+C javax.management.modelmbean.ModelMBeanAttributeInfo->getDescriptor [()Ljavax/management/Descriptor;]
+C javax.management.modelmbean.ModelMBeanOperationInfo->validDescriptor [(Ljavax/management/Descriptor;)Ljavax/management/Descriptor;]
+C javax.management.modelmbean.ModelMBeanNotificationInfo->getDescriptor [()Ljavax/management/Descriptor;]
+
+# Uses System.err, System.out (conditionally)
+C sun.security.util.Debug->println [(Ljava/lang/String;)V]
+C javax.security.auth.PrivateCredentialPermission->init [(Ljava/lang/String;)V] T[T]
+C sun.security.krb5.internal.KRBError->parseEData [([B)V]
+C com.sun.corba.se.impl.corba.TypeCodeImpl->toString [()Ljava/lang/String;]
+C javax.security.auth.PrivateCredentialPermission->impliesCredentialClass [(Ljava/lang/String;Ljava/lang/String;)Z]
+C com.sun.org.apache.bcel.internal.generic.CodeExceptionGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.bcel.internal.generic.FieldGenOrMethodGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.bcel.internal.generic.ConstantPoolGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.bcel.internal.generic.LineNumberGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.bcel.internal.generic.FieldGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.bcel.internal.generic.MethodGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.bcel.internal.generic.ClassGen->clone [()Ljava/lang/Object;] 
+C com.sun.org.apache.bcel.internal.generic.LocalVariableGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.xerces.internal.dom.DeferredDocumentTypeImpl->synchronizeChildren [()V]
+
+
+# TEMPORARY: disable logging checks
+C java.util.logging.Logger->log [(Ljava/util/logging/Level;Ljava/lang/String;)V]
+C java.util.logging.Logger->log [(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V]
+C java.util.logging.Logger->log [(Ljava/util/logging/Level;Ljava/lang/String;[Ljava/lang/Object;)V]
+C java.util.logging.Logger->logp [(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V]
+
+
+
+# load and instantiate arbitrary classes in sun.rmi.server + call RemoteRef.readExternal on them
+C java.rmi.server.RemoteObject->readObject [(Ljava/io/ObjectInputStream;)V]
+C sun.rmi.server.ActivatableRef->readExternal [(Ljava/io/ObjectInput;)V]
+C java.rmi.activation.ActivationID->readObject [(Ljava/io/ObjectInputStream;)V]
+# create instances of classes <arg1>_Stub, <arg1>_Skel, privileged Proxy creation
+C sun.rmi.server.Util::createStub [(Ljava/lang/Class;Ljava/rmi/server/RemoteRef;)Ljava/rmi/server/RemoteStub;]
+C sun.rmi.server.Util::createSkeleton [(Ljava/rmi/Remote;)Ljava/rmi/server/Skeleton;]
+C sun.rmi.server.Util::createProxy [(Ljava/lang/Class;Ljava/rmi/server/RemoteRef;Z)Ljava/rmi/Remote;]
+C sun.rmi.transport.DGCClient$EndpointEntry->setRenewTime [(J)V]
+
+#
+# PRIVILEGED CALLS
+#
+
+C sun.reflect.annotation.AnnotationType-><init> [(Ljava/lang/Class;)V]
+C javax.management.openmbean.OpenType->checkClassNameOverride [()V]
+C com.sun.org.apache.xalan.internal.utils.SecuritySupport::getSystemProperty [(Ljava/lang/String;)Ljava/lang/String;]
+C com.sun.org.apache.xerces.internal.utils.SecuritySupport::getResourceBundle [(Ljava/lang/String;Ljava/util/Locale;)Ljava/util/ResourceBundle;]
+C java.io.FilePermission->init [(I)V]
+C sun.misc.PathPermissions->init [()V]
+C sun.security.provider.SubjectCodeSource->toString [()Ljava/lang/String;]
+C java.security.ProtectionDomain->toString [()Ljava/lang/String;] 
+C javax.security.auth.Subject$SecureSet->contains [(Ljava/lang/Object;)Z]
+C javax.security.auth.Subject$SecureSet->clear [()V]
+C javax.security.auth.Subject$SecureSet->remove [(Ljava/lang/Object;)Z]
+C sun.security.provider.SubjectCodeSource->toString [()Ljava/lang/String;]
+C sun.management.GarbageCollectionNotifInfoCompositeData->getCompositeTypeByBuilder [()Ljavax/management/openmbean/CompositeType;]
+C java.io.ObjectStreamClass->getSerialVersionUID [()J]
 
 #
 # these come from the ObjectInputStream
@@ -114,8 +233,8 @@ S java.lang.SecurityManager->checkPackageAccess [(Ljava/lang/String;)V]
 C java.io.ObjectStreamClass->invokeReadResolve [(Ljava/lang/Object;)Ljava/lang/Object;]
 C java.io.ObjectStreamClass->invokeReadObject [(Ljava/lang/Object;)Ljava/lang/Object;]
 C java.io.ObjectStreamClass->invokeReadObjectNoData [(Ljava/lang/Object;)V]
-
-
+C java.io.ObjectStreamClass$EntryFuture->get [()Ljava/lang/Object;]
+C java.io.ObjectStreamClass::lookup [(Ljava/lang/Class;Z)Ljava/io/ObjectStreamClass;]
 
 #
 C java.lang.invoke.MemberName->getMethodType [()Ljava/lang/invoke/MethodType;]
@@ -125,12 +244,10 @@ C java.lang.invoke.MemberName->getFieldType [()Ljava/lang/Class;]
 # only invokes java.lang.Object methods
 C javax.management.openmbean.CompositeDataInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
 
-# these just return their arguments 
+# these just return their arguments, and cause type confusion 
 C java.util.Objects::requireNonNull [(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;]
 C java.util.Collections$CheckedCollection->typeCheck [(Ljava/lang/Object;)Ljava/lang/Object;]
-
 C java.lang.reflect.Method->copy [()Ljava/lang/reflect/Method;]
-
 
 # only predefined handlers
 C java.net.URL::getURLStreamHandler [(Ljava/lang/String;)Ljava/net/URLStreamHandler;]
@@ -139,29 +256,39 @@ C java.net.URL::getURLStreamHandler [(Ljava/lang/String;)Ljava/net/URLStreamHand
 C java.util.ResourceBundle::findBundleInCache [(Ljava/util/ResourceBundle$CacheKey;Ljava/util/ResourceBundle$Control;)Ljava/util/ResourceBundle;]
 C java.util.ResourceBundle::loadBundle [(Ljava/util/ResourceBundle$CacheKey;Ljava/util/List;Ljava/util/ResourceBundle$Control;Z)Ljava/util/ResourceBundle;]
 
-# calls map iterator, type not inferred
-# C javax.management.openmbean.TabularDataSupport->equals [(Ljava/lang/Object;)Z]
-
 # Reads a predefined JVM data file 
 C java.time.chrono.HijrahChronology->loadCalendarData [()V]
 C sun.util.calendar.CalendarSystem::forName [(Ljava/lang/String;)Lsun/util/calendar/CalendarSystem;]
+C sun.security.util.ResourcesMgr::getString [(Ljava/lang/String;)Ljava/lang/String;]
+C sun.security.util.ResourcesMgr::getString [(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;]
 
 # Only invokes the non-serializable AnnotationType method's
 C sun.reflect.annotation.AnnotationInvocationHandler->equalsImpl [(Ljava/lang/Object;)Ljava/lang/Boolean;]
 
-# Uses ByteArrayOutputStream
+# Uses ByteArrayOutputStream/StringBuffer
 C java.security.MessageDigest->toString [()Ljava/lang/String;]
-# Uses System.err
-C sun.security.util.Debug->println [(Ljava/lang/String;)V]
+C com.sun.corba.se.impl.corba.TypeCodeImpl->toString [()Ljava/lang/String;]
+C com.sun.org.apache.bcel.internal.classfile.Utility::codeToString [([BLcom/sun/org/apache/bcel/internal/classfile/ConstantPool;IIZ)Ljava/lang/String;]
+C com.sun.org.apache.bcel.internal.generic.FieldGenOrMethodGen->clone [()Ljava/lang/Object;]
+
 
 # Instantiates from a fixed set of classes
 C sun.security.x509.OtherName->equals [(Ljava/lang/Object;)Z]
 
 # DERInputStream is safe
-# C sun.security.util.DerValue-><init> [([B)V]
+C sun.security.util.DerValue-><init> [([B)V]
+C sun.security.util.DerInputStream->getSequence [(I)[Lsun/security/util/DerValue;]
+
+# newInstance on predefined class
+C javax.rmi.CORBA.Stub->setDefaultDelegate [()V]
+
+# InputStream is original ObjectInputStream
+C sun.security.x509.X509Key->readObject [(Ljava/io/ObjectInputStream;)V]
+C sun.security.pkcs.PKCS8Key->readObject [(Ljava/io/ObjectInputStream;)V]
 
 # Formatter on StringBuilder is safe
-# C java.net.HostPortrange-><init> [(Ljava/lang/String;Ljava/lang/String;)V]
+C java.lang.String::format [(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;]
+C java.net.HostPortrange-><init> [(Ljava/lang/String;Ljava/lang/String;)V]
 
 # load arbitrary resource bundle
 C java.util.logging.LogRecord->readObject [(Ljava/io/ObjectInputStream;)V]
@@ -169,24 +296,8 @@ C java.util.logging.LogRecord->readObject [(Ljava/io/ObjectInputStream;)V]
 # only invokes methods invocable by another invocation handler
 C com.sun.corba.se.spi.orbutil.proxy.CompositeInvocationHandlerImpl->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
 
-# load and instantiate arbitrary classes in sun.rmi.server + call readExternal on them
-# TODO: check further
-C java.rmi.server.RemoteObject->readObject [(Ljava/io/ObjectInputStream;)V]
-C sun.rmi.server.ActivatableRef->readExternal [(Ljava/io/ObjectInput;)V]
-C java.rmi.activation.ActivationID->readObject [(Ljava/io/ObjectInputStream;)V]
-# only interesting if one manages to call this with a Remote
-C java.rmi.server.RemoteObjectInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+# FP: toString
+C javax.management.BadAttributeValueExpException->readObject [(Ljava/io/ObjectInputStream;)V]
 
-# potential resource exhaustion, logging in reachable methods
-C com.sun.jmx.snmp.IPAcl.NetMaskImpl->equals [(Ljava/lang/Object;)Z]
-C javax.management.modelmbean.DescriptorSupport->getFieldValues [([Ljava/lang/String;)[Ljava/lang/Object;]
-C javax.management.modelmbean.DescriptorSupport->getFieldNames [()[Ljava/lang/String;]
-C javax.management.modelmbean.ModelMBeanAttributeInfo->getDescriptor [()Ljavax/management/Descriptor;]
-C javax.management.modelmbean.ModelMBeanOperationInfo->validDescriptor [(Ljavax/management/Descriptor;)Ljavax/management/Descriptor;]
-C javax.management.modelmbean.ModelMBeanNotificationInfo->getDescriptor [()Ljavax/management/Descriptor;]
 
-# TEMPORARY: disable logging checks
-C java.util.logging.Logger->log [(Ljava/util/logging/Level;Ljava/lang/String;)V]
-C java.util.logging.Logger->log [(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V]
-C java.util.logging.Logger->logp [(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V]
 

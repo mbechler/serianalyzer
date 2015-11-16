@@ -60,10 +60,7 @@ public class Serianalyzer {
      */
     public void analyze () throws SerianalyzerException {
         restoreOrRunAnalysis();
-        log.info(String.format("Found a total %d method reachable", this.state.getKnown().size())); //$NON-NLS-1$
-        log.info(String.format("Found a total %d native method initially reachable", this.state.getNativeMethods().size())); //$NON-NLS-1$
-        log.info(String.format("Found a total %d safe methods", this.state.getSafe().size())); //$NON-NLS-1$
-        filterAndDump();
+
     }
 
 
@@ -74,10 +71,16 @@ public class Serianalyzer {
     private void restoreOrRunAnalysis () throws SerianalyzerException {
         if ( this.input.getConfig().getRestoreFrom() != null ) {
             restore();
+            filterAndDump();
+            save();
         }
         else {
             runAnalysis();
             save();
+            log.info(String.format("Found a total %d method reachable", this.state.getKnown().size())); //$NON-NLS-1$
+            log.info(String.format("Found a total %d native method initially reachable", this.state.getNativeMethods().size())); //$NON-NLS-1$
+            log.info(String.format("Found a total %d safe methods", this.state.getSafe().size())); //$NON-NLS-1$
+            filterAndDump();
         }
     }
 
@@ -100,6 +103,10 @@ public class Serianalyzer {
         if ( this.input.getConfig().isDumpInstantiationInfo() ) {
             dumpInstantiable(usedInstantiable);
         }
+        traceInstantiation("  ", DotName.createSimple("sun.reflect.NativeMethodAccessorImpl"), new HashSet<>()); //$NON-NLS-1$
+        traceInstantiation("  ", DotName.createSimple("sun.reflect.ReflectionFactory"), new HashSet<>()); //$NON-NLS-1$
+        traceInstantiation("  ", DotName.createSimple("java.lang.reflect.Method"), new HashSet<>()); //$NON-NLS-1$
+
         this.state.getBench().dump();
     }
 
@@ -139,7 +146,6 @@ public class Serianalyzer {
                 ClassNotFoundException e ) {
                 throw new SerianalyzerException("Failed to restore state", e); //$NON-NLS-1$
             }
-            filterAndDump();
         }
     }
 
@@ -195,11 +201,13 @@ public class Serianalyzer {
             log.info("Filtering: iteration " + i + "..."); //$NON-NLS-1$ //$NON-NLS-2$
             anyChanged = false;
             anyChanged |= removeRecursiveInstatiations();
-            Set<MethodReference> known = new HashSet<>(this.state.getMethodCallers().keySet());
-            for ( MethodReference kn : known ) {
-                anyChanged |= removeNonReachable(kn, this.state.getInitial(), toRemove);
+
+            if ( this.input.getConfig().isUseHeuristics() ) {
+                Set<MethodReference> known = new HashSet<>(this.state.getMethodCallers().keySet());
+                for ( MethodReference kn : known ) {
+                    anyChanged |= removeNonReachable(kn, this.state.getInitial(), toRemove);
+                }
             }
-            log.info(String.format("Removing %d non-instantiable", toRemove.size())); //$NON-NLS-1$
             this.state.getKnown().removeAll(toRemove);
             this.state.getStaticPuts().removeAll(toRemove);
             log.info(String.format("Remaining methods %d", this.state.getKnown().size())); //$NON-NLS-1$
@@ -207,6 +215,8 @@ public class Serianalyzer {
             toRemove.clear();
         }
         log.info("Finished filtering"); //$NON-NLS-1$
+        System.out.flush();
+        System.err.flush();
     }
 
 
@@ -248,6 +258,8 @@ public class Serianalyzer {
             if ( !dumpBacktraces(cal, this.state.getInitial(), usedInstantiable, "", this.input.getConfig().getMaxDisplayDumps()) ) { //$NON-NLS-1$
                 continue;
             }
+            System.out.flush();
+            System.err.flush();
             System.err.println(msg + cal);
             nonWhitelist++;
         }
@@ -256,6 +268,8 @@ public class Serianalyzer {
 
 
     private void dumpInstantiable ( Set<DotName> usedInstantiable ) {
+        System.out.flush();
+        System.err.flush();
         System.out.println(String.format("Used %d non-serializable instantiable types: ", usedInstantiable.size())); //$NON-NLS-1$
         for ( DotName name : usedInstantiable ) {
             traceInstantiation("  ", name, new HashSet<>()); //$NON-NLS-1$
@@ -307,6 +321,10 @@ public class Serianalyzer {
             MethodReference r = p.get(p.size() - 1);
 
             if ( targets.contains(r) ) {
+                if ( this.input.getConfig().isWhitelisted(r) ) {
+                    continue;
+                }
+
                 limit--;
 
                 for ( MethodReference elem : p ) {
@@ -323,6 +341,8 @@ public class Serianalyzer {
                     }
                 }
                 System.out.println();
+                System.out.flush();
+                System.err.flush();
                 anyFound = true;
                 if ( limit <= 0 ) {
                     return true;
@@ -361,7 +381,7 @@ public class Serianalyzer {
 
         if ( checkAllRecursive(typeName.toString(), this.state.getInitial()) ) {
             log.warn("All instantiations are recursive for " + typeName); //$NON-NLS-1$
-            return;
+            // return;
         }
 
         int limit = 3;
@@ -391,7 +411,6 @@ public class Serianalyzer {
 
                 if ( nonSerializable ) {
                     System.out.println();
-                    //traceInstantiation(prefix + " ", r.getTypeName(), found); //$NON-NLS-1$
                 }
                 else {
                     System.out.println(" serializable"); //$NON-NLS-1$
@@ -415,7 +434,7 @@ public class Serianalyzer {
         Set<MethodReference> i = this.state.getInstantiatedThrough().get(typeName);
         if ( i == null || i.isEmpty() ) {
             log.warn("Instantiated through is empty " + typeName); //$NON-NLS-1$
-            return true;
+            return this.input.getConfig().isFilterNonReachableInitializers();
         }
 
         Queue<MethodReference> toVisit = new LinkedList<>(i);
