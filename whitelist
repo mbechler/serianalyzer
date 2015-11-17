@@ -145,10 +145,19 @@ S java.lang.SecurityManager->checkPackageAccess [(Ljava/lang/String;)V]
 #
 # DEFINITELY VULNERABLE
 #
-C sun.rmi.transport.DGCClient$EndpointEntry-><init> [(Lsun/rmi/transport/Endpoint;)V]
-C sun.rmi.transport.DGCImpl_Stub->dirty [([Ljava/rmi/server/ObjID;JLjava/rmi/dgc/Lease;)Ljava/rmi/dgc/Lease;]
+#C sun.rmi.transport.DGCClient$EndpointEntry-><init> [(Lsun/rmi/transport/Endpoint;)V]
+#C sun.rmi.transport.DGCImpl_Stub->dirty [([Ljava/rmi/server/ObjID;JLjava/rmi/dgc/Lease;)Ljava/rmi/dgc/Lease;]
 # CHECK: Might stack into JRMP proxying with the above 
-C java.rmi.server.RemoteObjectInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+#C java.rmi.server.RemoteObjectInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+
+
+# The well known
+C org.apache.commons.collections4.functors.InvokerTransformer->transform [(Ljava/lang/Object;)Ljava/lang/Object;]
+
+# Instantiates arbitrary classes, using arbitrary constructor
+C org.apache.commons.collections4.functors.InstantiateTransformer->transform [(Ljava/lang/Class;)Ljava/lang/Object;]
+C org.apache.commons.collections4.functors.InstantiateFactory->create [()Ljava/lang/Object;]
+
 
 
 #
@@ -156,6 +165,8 @@ C java.rmi.server.RemoteObjectInvocationHandler->invoke [(Ljava/lang/Object;Ljav
 #
 # Clones by serialization using default function
 C org.apache.commons.collections4.functors.PrototypeFactory$PrototypeSerializationFactory->create [()Ljava/io/Serializable;]
+
+
 # this is totally not thread-safe, but the impact should be marginal
 S com.sun.org.apache.bcel.internal.classfile.Utility::signatureToString [(Ljava/lang/String;Z)Ljava/lang/String;]
 
@@ -165,6 +176,9 @@ S com.sun.org.apache.bcel.internal.classfile.Utility::signatureToString [(Ljava/
 # DISPUTABLE
 #
 C org.apache.commons.collections4.map.MultiValueMap$ReflectionFactory->create [()Ljava/lang/Object;]
+C org.apache.commons.collections4.functors.PrototypeFactory$PrototypeCloneFactory->create [()Ljava/lang/Object;]
+ 
+
 # potential resource exhaustion, logging in reachable methods
 C com.sun.jmx.snmp.IPAcl.NetMaskImpl->equals [(Ljava/lang/Object;)Z]
 C javax.management.modelmbean.DescriptorSupport->getFieldValues [([Ljava/lang/String;)[Ljava/lang/Object;]
@@ -270,17 +284,18 @@ C java.security.MessageDigest->toString [()Ljava/lang/String;]
 C com.sun.corba.se.impl.corba.TypeCodeImpl->toString [()Ljava/lang/String;]
 C com.sun.org.apache.bcel.internal.classfile.Utility::codeToString [([BLcom/sun/org/apache/bcel/internal/classfile/ConstantPool;IIZ)Ljava/lang/String;]
 C com.sun.org.apache.bcel.internal.generic.FieldGenOrMethodGen->clone [()Ljava/lang/Object;]
-
+C sun.rmi.server.Util::computeMethodHash [(Ljava/lang/reflect/Method;)J]
 
 # Instantiates from a fixed set of classes
 C sun.security.x509.OtherName->equals [(Ljava/lang/Object;)Z]
+C javax.rmi.CORBA.Stub->setDefaultDelegate [()V]
+C com.sun.corba.se.impl.io.IIOPInputStream->createOptionalDataException [()Ljava/io/OptionalDataException;] 
 
 # DERInputStream is safe
 C sun.security.util.DerValue-><init> [([B)V]
 C sun.security.util.DerInputStream->getSequence [(I)[Lsun/security/util/DerValue;]
 
-# newInstance on predefined class
-C javax.rmi.CORBA.Stub->setDefaultDelegate [()V]
+
 
 # InputStream is original ObjectInputStream
 C sun.security.x509.X509Key->readObject [(Ljava/io/ObjectInputStream;)V]

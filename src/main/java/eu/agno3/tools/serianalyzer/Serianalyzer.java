@@ -103,9 +103,6 @@ public class Serianalyzer {
         if ( this.input.getConfig().isDumpInstantiationInfo() ) {
             dumpInstantiable(usedInstantiable);
         }
-        traceInstantiation("  ", DotName.createSimple("sun.reflect.NativeMethodAccessorImpl"), new HashSet<>()); //$NON-NLS-1$
-        traceInstantiation("  ", DotName.createSimple("sun.reflect.ReflectionFactory"), new HashSet<>()); //$NON-NLS-1$
-        traceInstantiation("  ", DotName.createSimple("java.lang.reflect.Method"), new HashSet<>()); //$NON-NLS-1$
 
         this.state.getBench().dump();
     }
@@ -178,7 +175,7 @@ public class Serianalyzer {
      * 
      */
     private void prefilterMethods () {
-        log.info("Running filtering"); //$NON-NLS-1$
+        log.info("Running filtering with heuristics " + ( this.input.getConfig().isUseHeuristics() ? "ENABLED" : "DISABLED" )); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         removeIgnoreTaint(this.state.getSafe(), this.state.getNativeMethods());
         this.state.getSafe().addAll(this.input.getConfig().getNativeWhiteList());
         this.state.getNativeMethods().removeAll(this.input.getConfig().getNativeWhiteList());
@@ -194,6 +191,7 @@ public class Serianalyzer {
 
         log.info(String.format("Remaining methods %d", this.state.getKnown().size())); //$NON-NLS-1$
         Set<MethodReference> toRemove = new HashSet<>();
+
         boolean anyChanged = true;
         int i = 0;
         while ( anyChanged ) {
@@ -202,18 +200,17 @@ public class Serianalyzer {
             anyChanged = false;
             anyChanged |= removeRecursiveInstatiations();
 
-            if ( this.input.getConfig().isUseHeuristics() ) {
-                Set<MethodReference> known = new HashSet<>(this.state.getMethodCallers().keySet());
-                for ( MethodReference kn : known ) {
-                    anyChanged |= removeNonReachable(kn, this.state.getInitial(), toRemove);
-                }
+            Set<MethodReference> known = new HashSet<>(this.state.getMethodCallers().keySet());
+            for ( MethodReference kn : known ) {
+                anyChanged |= removeNonReachable(kn, this.state.getInitial(), toRemove);
             }
-            this.state.getKnown().removeAll(toRemove);
+            removeIgnoreTaint(this.state.getKnown(), toRemove);
             this.state.getStaticPuts().removeAll(toRemove);
             log.info(String.format("Remaining methods %d", this.state.getKnown().size())); //$NON-NLS-1$
             removeIgnoreTaint(this.state.getNativeMethods(), toRemove);
             toRemove.clear();
         }
+
         log.info("Finished filtering"); //$NON-NLS-1$
         System.out.flush();
         System.err.flush();
@@ -554,20 +551,29 @@ public class Serianalyzer {
 
     private boolean removeNonReachable ( MethodReference ref, Set<MethodReference> retainSet, Set<MethodReference> toRemove ) {
         MethodReference s = ref.comparable();
+
+        if ( toRemove.contains(s) ) {
+            return false;
+        }
+
         ClassInfo classByName = this.input.getIndex().getClassByName(s.getTypeName());
 
         if ( this.input.getConfig().isWhitelisted(s) ) {
             if ( log.isDebugEnabled() ) {
                 log.debug("Removing because of whitelist " + s); //$NON-NLS-1$
             }
-            return this.state.remove(s, toRemove);
+            return this.state.remove(s, toRemove, RemovalReason.WHITELIST);
         }
 
         if ( !retainSet.contains(s) && ( this.state.getMethodCallers().get(s) == null || this.state.getMethodCallers().get(s).isEmpty() ) ) {
             if ( log.isDebugEnabled() ) {
                 log.debug("Removing because of missing callers " + s); //$NON-NLS-1$
             }
-            return this.state.remove(s, toRemove);
+            return this.state.remove(s, toRemove, RemovalReason.NOCALLERS);
+        }
+
+        if ( !this.input.getConfig().isUseHeuristics() ) {
+            return false;
         }
 
         if ( !s.isInterface() && ( s.isStatic() || TypeUtil.isSerializable(this.input.getIndex(), classByName) || this.state.isInstantiable(s) ) ) {
@@ -577,7 +583,7 @@ public class Serianalyzer {
         if ( log.isDebugEnabled() ) {
             log.debug("Removing because uninstantiable " + s); //$NON-NLS-1$
         }
-        return this.state.remove(s, toRemove);
+        return this.state.remove(s, toRemove, RemovalReason.UNINSTATIABLE);
     }
 
 

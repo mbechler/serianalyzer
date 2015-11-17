@@ -105,23 +105,19 @@ public class SerianalyzerState implements Serializable {
      * @param s
      * @param toRemove
      */
-    boolean remove ( MethodReference s, Set<MethodReference> toRemove ) {
+    boolean remove ( MethodReference s, Set<MethodReference> toRemove, RemovalReason r ) {
         if ( toRemove.contains(s) ) {
             return false;
         }
         toRemove.add(s);
 
         Set<MethodReference> calls = this.methodCallers.remove(s);
+
         if ( calls != null ) {
             for ( MethodReference caller : calls ) {
                 Set<MethodReference> callerCalls = this.methodCallees.get(caller);
                 if ( callerCalls != null ) {
-                    if ( !callerCalls.remove(s) ) {
-
-                    }
-                    if ( callerCalls.isEmpty() ) {
-                        remove(caller, toRemove);
-                    }
+                    callerCalls.remove(s);
                 }
             }
         }
@@ -135,7 +131,7 @@ public class SerianalyzerState implements Serializable {
 
                     }
                     if ( calleeCallers.isEmpty() ) {
-                        remove(callee, toRemove);
+                        remove(callee, toRemove, RemovalReason.NOCALLERS);
                     }
                 }
             }
