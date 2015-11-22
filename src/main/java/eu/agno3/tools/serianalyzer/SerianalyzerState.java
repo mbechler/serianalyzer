@@ -12,6 +12,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -20,7 +21,6 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 
-import org.jboss.jandex.DotName;
 import org.jboss.jandex.Index;
 import org.objectweb.asm.Type;
 
@@ -36,9 +36,11 @@ public class SerianalyzerState implements Serializable {
     private static final long serialVersionUID = -6684125985594751877L;
 
     private Set<MethodReference> initial = new HashSet<>();
-    private Set<MethodReference> known = new HashSet<>();
+
     private Set<MethodReference> safe = new HashSet<>();
     private Queue<MethodReference> toCheck = new LinkedList<>();
+
+    private Map<MethodReference, Set<MethodReference>> known = new HashMap<>();
     private Map<MethodReference, Set<MethodReference>> methodCallers = new HashMap<>();
     private Map<MethodReference, Set<MethodReference>> methodCallees = new HashMap<>();
     private Set<MethodReference> nativeMethods = new HashSet<>();
@@ -47,8 +49,6 @@ public class SerianalyzerState implements Serializable {
     private Set<MethodReference> checkedReturnType = new HashSet<>();
     private transient Map<MethodReference, Type> returnTypes = new HashMap<>();
     private Set<MethodReference> staticPuts = new HashSet<>();
-    private Map<MethodReference, MethodReference> maximumTaintStatus = new HashMap<>();
-
     private Benchmark bench = new Benchmark();
 
 
@@ -97,7 +97,7 @@ public class SerianalyzerState implements Serializable {
      * @return whether the referenced type is instantiable
      */
     public boolean isInstantiable ( MethodReference r ) {
-        return this.instantiableTypes.contains(r.getTypeName().toString());
+        return this.instantiableTypes.contains(r.getTypeNameString());
     }
 
 
@@ -144,33 +144,14 @@ public class SerianalyzerState implements Serializable {
      * @param typeName
      * @param methodReference
      */
-    void trackInstantiable ( DotName typeName, MethodReference methodReference ) {
-        String tn = typeName.toString();
+    void trackInstantiable ( String tn, MethodReference methodReference ) {
         this.instantiableTypes.add(tn);
         Set<MethodReference> set = this.instantiatedThrough.get(tn);
         if ( set == null ) {
             set = new HashSet<>();
             this.instantiatedThrough.put(tn, set);
         }
-
-        trackMaximumTaint(methodReference);
         set.add(methodReference);
-    }
-
-
-    /**
-     * @param methodReference
-     */
-    void trackMaximumTaint ( MethodReference methodReference ) {
-        MethodReference cmp = methodReference.comparable();
-        MethodReference maxTaint = this.maximumTaintStatus.get(cmp);
-        if ( maxTaint == null ) {
-            maxTaint = methodReference;
-        }
-        else {
-            maxTaint = maxTaint.maxTaint(methodReference);
-        }
-        this.maximumTaintStatus.put(cmp, maxTaint);
     }
 
 
@@ -179,9 +160,7 @@ public class SerianalyzerState implements Serializable {
      * @param cal
      */
     void traceCalls ( MethodReference methodReference, Set<MethodReference> cal ) {
-
         MethodReference called = methodReference.comparable();
-        trackMaximumTaint(methodReference);
 
         Set<MethodReference> calling = this.methodCallers.get(called);
         if ( calling == null ) {
@@ -199,7 +178,6 @@ public class SerianalyzerState implements Serializable {
 
         if ( cal != null ) {
             for ( MethodReference caller : cal ) {
-                trackMaximumTaint(caller);
                 MethodReference comparable = caller.comparable();
                 Set<MethodReference> callees = this.methodCallees.get(comparable);
                 if ( !called.equals(comparable) ) {
@@ -273,7 +251,7 @@ public class SerianalyzerState implements Serializable {
      * @param ref
      */
     void markSafe ( MethodReference ref ) {
-        this.safe.add(ref);
+        this.safe.add(ref.comparable());
     }
 
 
@@ -282,7 +260,7 @@ public class SerianalyzerState implements Serializable {
      */
     void nativeCall ( MethodReference ref ) {
         this.nativeMethods.add(ref.comparable());
-        this.known.add(ref.comparable());
+        this.trackKnown(ref);
     }
 
 
@@ -303,10 +281,73 @@ public class SerianalyzerState implements Serializable {
 
 
     /**
-     * @return the known
+     * @return the total number of found method calls
      */
-    public Set<MethodReference> getKnown () {
-        return this.known;
+    public long getTotalKnownCount () {
+        long total = 0;
+        for ( Set<MethodReference> set : this.known.values() ) {
+            if ( set != null ) {
+                total += set.size();
+            }
+        }
+        return total;
+    }
+
+
+    /**
+     * @param method
+     * @return the known instances for the method call
+     */
+    public Set<MethodReference> getAlreadyKnown ( MethodReference method ) {
+        MethodReference cmp = method.comparable();
+        Set<MethodReference> set = this.known.get(cmp);
+        if ( set == null ) {
+            return Collections.EMPTY_SET;
+        }
+        return set;
+    }
+
+
+    /**
+     * @param method
+     */
+    public void trackKnown ( MethodReference method ) {
+        MethodReference cmp = method.comparable();
+        Set<MethodReference> set = this.known.get(cmp);
+
+        if ( set == null ) {
+            set = new HashSet<>();
+            this.known.put(cmp, set);
+        }
+        set.add(method);
+    }
+
+
+    /**
+     * @param methodReference
+     * @return whether a method call is already known
+     */
+    public boolean isKnown ( MethodReference methodReference ) {
+        MethodReference cmp = methodReference.comparable();
+        Set<MethodReference> set = this.known.get(cmp);
+        if ( set == null ) {
+            return false;
+        }
+        return set.contains(methodReference);
+    }
+
+
+    /**
+     * @param toRemove
+     * @return whether any change was made
+     */
+    public boolean removeAllKnown ( Set<MethodReference> toRemove ) {
+        boolean anyChanged = false;
+        for ( MethodReference ref : toRemove ) {
+            MethodReference cmp = ref.comparable();
+            anyChanged |= this.known.remove(cmp) != null;
+        }
+        return anyChanged;
     }
 
 
@@ -391,17 +432,15 @@ public class SerianalyzerState implements Serializable {
 
 
     /**
-     * @return the maximumTaintStatus
+     * @param elem
+     * @return the maximum known taint status for a method
      */
-    public Map<MethodReference, MethodReference> getMaximumTaintStatus () {
-        return this.maximumTaintStatus;
+    public MethodReference getMaximumTaintStatus ( MethodReference elem ) {
+        MethodReference cur = elem;
+        for ( MethodReference methodReference : getAlreadyKnown(elem) ) {
+            cur = cur.maxTaint(methodReference);
+        }
+        return cur;
     }
 
-
-    /**
-     * @param knownIgnoreTaint
-     */
-    void setKnown ( Set<MethodReference> knownIgnoreTaint ) {
-        this.known = knownIgnoreTaint;
-    }
 }

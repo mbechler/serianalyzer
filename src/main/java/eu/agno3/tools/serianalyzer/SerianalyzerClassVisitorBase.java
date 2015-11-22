@@ -7,7 +7,6 @@
 package eu.agno3.tools.serianalyzer;
 
 
-import org.jboss.jandex.DotName;
 
 
 /**
@@ -25,6 +24,6 @@ public interface SerianalyzerClassVisitorBase {
     /**
      * @return the target class name
      */
-    DotName getClassName ();
+    String getClassName ();
 
 }

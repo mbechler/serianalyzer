@@ -12,6 +12,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 
@@ -30,18 +31,24 @@ public class MethodReference implements Serializable {
      */
     private static final long serialVersionUID = -6109397570552531402L;
 
-    private transient DotName typeName;
+    private String typeName;
     private String method;
     private String signature;
     private boolean intf;
     private boolean stat;
 
+    private boolean anyTaint;
     private BitSet parameterTaint = new BitSet();
     private BitSet parameterReturnTaint = new BitSet();
     private boolean calleeTaint;
 
     private transient List<Type> argumentTypes;
     private transient Type targetType;
+
+    private int argsLength;
+
+    private transient Integer cachedHashCode;
+    private transient DotName nameCache;
 
 
     /**
@@ -57,19 +64,19 @@ public class MethodReference implements Serializable {
      * @param stat
      * @param signature
      */
-    public MethodReference ( DotName typeName, boolean intf, String method, boolean stat, String signature ) {
+    public MethodReference ( String typeName, boolean intf, String method, boolean stat, String signature ) {
         super();
-        this.typeName = typeName;
+        this.typeName = typeName.intern();
         this.intf = intf;
-        this.method = method;
+        this.method = method.intern();
         this.stat = stat;
-        this.signature = signature;
+        this.signature = signature.intern();
+        this.argsLength = Type.getArgumentTypes(signature).length;
     }
 
 
     private void writeObject ( ObjectOutputStream oos ) throws IOException {
         oos.defaultWriteObject();
-        oos.writeUTF(this.typeName.toString());
 
         oos.writeBoolean(this.targetType != null);
         if ( this.targetType != null ) {
@@ -92,15 +99,11 @@ public class MethodReference implements Serializable {
     private void readObject ( ObjectInputStream ois ) throws ClassNotFoundException, IOException {
         ois.defaultReadObject();
 
-        String tname = ois.readUTF();
-        if ( tname != null ) {
-            this.typeName = DotName.createSimple(tname);
-        }
-
         if ( ois.readBoolean() ) {
             this.targetType = Type.getType(ois.readUTF());
         }
 
+        String tname;
         boolean haveArgs = ois.readBoolean();
         if ( haveArgs ) {
             int argc = ois.readInt();
@@ -122,8 +125,7 @@ public class MethodReference implements Serializable {
     @Override
     public String toString () {
         StringBuilder taintStatus = new StringBuilder();
-        int params = Type.getArgumentTypes(this.signature).length;
-        for ( int i = 0; i < params; i++ ) {
+        for ( int i = 0; i < this.argsLength; i++ ) {
             taintStatus.append(this.parameterTaint.get(i) ? 'T' : 'U');
         }
         char callerTaint = this.calleeTaint ? 'T' : 'U';
@@ -138,9 +140,9 @@ public class MethodReference implements Serializable {
             }
             argTypeString.append(')');
         }
-        return String.format("%s%s%s [%s]%s %s[%s]", //$NON-NLS-1$
+        return String.format("%s%s%s [%s]%s %s[%s] %s", //$NON-NLS-1$
             this.typeName,
-            this.stat ? "::" : "->", this.method, this.signature, argTypeString, callerTaint, taintStatus); //$NON-NLS-1$ //$NON-NLS-2$
+            this.stat ? "::" : "->", this.method, this.signature, argTypeString, callerTaint, taintStatus, this.intf ? " interface" : ""); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
 
     }
 
@@ -158,7 +160,36 @@ public class MethodReference implements Serializable {
      *            the targetType to set
      */
     public void setTargetType ( Type targetType ) {
+        this.cachedHashCode = null;
+        if ( targetType.getClassName().equals(this.typeName.toString()) ) {
+            return;
+        }
         this.targetType = targetType;
+    }
+
+
+    /**
+     * @return the argumentTypes
+     */
+    public List<Type> getArgumentTypes () {
+        return this.argumentTypes;
+    }
+
+
+    /**
+     * @param argumentTypes
+     *            the argumentTypes to set
+     */
+    public void setArgumentTypes ( List<Type> argumentTypes ) {
+        this.cachedHashCode = null;
+        if ( argumentTypes == null || argumentTypes.isEmpty() ) {
+            return;
+        }
+        Type[] sigTypes = Type.getArgumentTypes(this.signature);
+        if ( Arrays.equals(sigTypes, argumentTypes.toArray()) ) {
+            return;
+        }
+        this.argumentTypes = argumentTypes;
     }
 
 
@@ -179,10 +210,21 @@ public class MethodReference implements Serializable {
 
 
     /**
+     * @return the type name as a string
+     */
+    public String getTypeNameString () {
+        return this.typeName;
+    }
+
+
+    /**
      * @return the typeName
      */
     public DotName getTypeName () {
-        return this.typeName;
+        if ( this.nameCache == null ) {
+            this.nameCache = DotName.createSimple(this.typeName);
+        }
+        return this.nameCache;
     }
 
 
@@ -216,6 +258,7 @@ public class MethodReference implements Serializable {
      * @return taint status changed
      */
     public boolean taintParameter ( int i ) {
+        this.anyTaint = true;
         boolean old = isParameterTainted(i);
         this.parameterTaint.set(i);
         return !old;
@@ -238,6 +281,7 @@ public class MethodReference implements Serializable {
      * @return taint status changed
      */
     public boolean taintParameterReturns ( int i ) {
+        this.anyTaint = true;
         boolean old = isTaintParameterReturn(i);
         this.parameterReturnTaint.set(i);
         return !old;
@@ -257,26 +301,11 @@ public class MethodReference implements Serializable {
      * @return whether taint status changed
      */
     public boolean taintCallee () {
+        this.cachedHashCode = null;
+        this.anyTaint = true;
         boolean old = this.calleeTaint;
         this.calleeTaint = true;
         return !old;
-    }
-
-
-    /**
-     * @return the argumentTypes
-     */
-    public List<Type> getArgumentTypes () {
-        return this.argumentTypes;
-    }
-
-
-    /**
-     * @param argumentTypes
-     *            the argumentTypes to set
-     */
-    public void setArgumentTypes ( List<Type> argumentTypes ) {
-        this.argumentTypes = argumentTypes;
     }
 
 
@@ -287,17 +316,20 @@ public class MethodReference implements Serializable {
      */
     @Override
     public int hashCode () {
+
+        if ( this.cachedHashCode != null ) {
+            return this.cachedHashCode;
+        }
+
         final int prime = 31;
         int result = 1;
-        result = prime * result + ( ( this.argumentTypes == null ) ? 0 : this.argumentTypes.hashCode() );
         result = prime * result + ( this.calleeTaint ? 1231 : 1237 );
         result = prime * result + ( this.intf ? 1231 : 1237 );
         result = prime * result + ( ( this.method == null ) ? 0 : this.method.hashCode() );
-        result = prime * result + ( ( this.parameterReturnTaint == null ) ? 0 : this.parameterReturnTaint.hashCode() );
-        result = prime * result + ( ( this.parameterTaint == null ) ? 0 : this.parameterTaint.hashCode() );
         result = prime * result + ( ( this.signature == null ) ? 0 : this.signature.hashCode() );
         result = prime * result + ( this.stat ? 1231 : 1237 );
         result = prime * result + ( ( this.typeName == null ) ? 0 : this.typeName.hashCode() );
+        this.cachedHashCode = result;
         return result;
     }
 
@@ -316,22 +348,29 @@ public class MethodReference implements Serializable {
         if ( getClass() != obj.getClass() )
             return false;
         MethodReference other = (MethodReference) obj;
-        if ( this.argumentTypes == null ) {
-            if ( other.argumentTypes != null )
-                return false;
+
+        if ( other.hashCode() != this.hashCode() ) {
+            return false;
         }
-        else if ( !this.argumentTypes.equals(other.argumentTypes) )
+
+        if ( other.anyTaint ^ this.anyTaint ) {
+            return false;
+        }
+
+        if ( this.intf != other.intf )
             return false;
         if ( this.calleeTaint != other.calleeTaint )
             return false;
-        if ( this.intf != other.intf )
-            return false;
+
         if ( this.method == null ) {
             if ( other.method != null )
                 return false;
         }
         else if ( !this.method.equals(other.method) )
             return false;
+        if ( this.stat != other.stat )
+            return false;
+
         if ( this.parameterReturnTaint == null ) {
             if ( other.parameterReturnTaint != null )
                 return false;
@@ -344,20 +383,35 @@ public class MethodReference implements Serializable {
         }
         else if ( !this.parameterTaint.equals(other.parameterTaint) )
             return false;
-        if ( this.signature == null ) {
-            if ( other.signature != null )
-                return false;
-        }
-        else if ( !this.signature.equals(other.signature) )
-            return false;
-        if ( this.stat != other.stat )
-            return false;
+
         if ( this.typeName == null ) {
             if ( other.typeName != null )
                 return false;
         }
         else if ( !this.typeName.toString().equals(other.typeName.toString()) )
             return false;
+
+        if ( this.signature == null ) {
+            if ( other.signature != null )
+                return false;
+        }
+        else if ( !this.signature.equals(other.signature) )
+            return false;
+
+        if ( this.targetType == null ) {
+            if ( other.targetType != null )
+                return false;
+        }
+        else if ( !this.targetType.equals(other.targetType) )
+            return false;
+
+        if ( this.argumentTypes == null ) {
+            if ( other.argumentTypes != null )
+                return false;
+        }
+        else if ( !this.argumentTypes.equals(other.argumentTypes) )
+            return false;
+
         return true;
     }
 
@@ -367,10 +421,19 @@ public class MethodReference implements Serializable {
      * @return a new method reference for the given target type
      */
     public MethodReference adaptToType ( DotName name ) {
-        MethodReference ref = new MethodReference(name, false, this.getMethod(), this.stat, this.getSignature());
-        ref.calleeTaint = this.calleeTaint;
-        ref.parameterTaint = (BitSet) this.parameterTaint.clone();
-        ref.parameterReturnTaint = (BitSet) this.parameterReturnTaint.clone();
+        MethodReference ref = new MethodReference(name.toString(), false, this.getMethod(), this.stat, this.getSignature());
+        if ( this.calleeTaint ) {
+            ref.taintCallee();
+        }
+        for ( int i = 0; i < this.argsLength; i++ ) {
+            if ( this.isParameterTainted(i) ) {
+                ref.taintParameter(i);
+            }
+            if ( this.isTaintParameterReturn(i) ) {
+                ref.taintParameterReturns(i);
+            }
+        }
+
         if ( this.argumentTypes != null ) {
             ref.argumentTypes = new ArrayList<>(this.argumentTypes);
         }
@@ -382,10 +445,9 @@ public class MethodReference implements Serializable {
      * @return a new method that reflects full taint status
      */
     public MethodReference fullTaint () {
-        MethodReference ref = new MethodReference(this.getTypeName(), this.isInterface(), this.getMethod(), this.isStatic(), this.getSignature());
-        ref.calleeTaint = true;
-        Type[] t = Type.getArgumentTypes(this.getSignature());
-        for ( int i = 0; i < t.length; i++ ) {
+        MethodReference ref = new MethodReference(this.typeName, this.isInterface(), this.getMethod(), this.isStatic(), this.getSignature());
+        ref.taintCallee();
+        for ( int i = 0; i < this.argsLength; i++ ) {
             ref.taintParameter(i);
         }
         return ref;
@@ -397,13 +459,16 @@ public class MethodReference implements Serializable {
      * @return a new method that reflects the union of the two methods taint states
      */
     public MethodReference maxTaint ( MethodReference other ) {
-        if ( !this.comparable().equals(other.comparable()) ) {
+        MethodReference aComp = this.comparable();
+        MethodReference bComp = other.comparable();
+        if ( !aComp.equals(bComp) ) {
             throw new IllegalArgumentException("Not same method"); //$NON-NLS-1$
         }
-        MethodReference ref = new MethodReference(this.getTypeName(), this.isInterface(), this.getMethod(), this.isStatic(), this.getSignature());
-        ref.calleeTaint = this.calleeTaint || other.calleeTaint;
-        Type[] t = Type.getArgumentTypes(this.getSignature());
-        for ( int i = 0; i < t.length; i++ ) {
+        MethodReference ref = new MethodReference(this.typeName, this.isInterface(), this.getMethod(), this.isStatic(), this.getSignature());
+        if ( this.calleeTaint || other.calleeTaint ) {
+            ref.taintCallee();
+        }
+        for ( int i = 0; i < this.argsLength; i++ ) {
             if ( this.isParameterTainted(i) || other.isParameterTainted(i) ) {
                 ref.taintParameter(i);
             }
@@ -419,7 +484,64 @@ public class MethodReference implements Serializable {
      * @return a compareable type name without tainting information
      */
     public MethodReference comparable () {
-        return new MethodReference(this.getTypeName(), this.isInterface(), this.getMethod(), this.isStatic(), this.getSignature());
+        if ( !this.anyTaint && this.targetType == null && this.argumentTypes == null ) {
+            return this;
+        }
+        return new MethodReference(this.typeName, this.isInterface(), this.getMethod(), this.isStatic(), this.getSignature());
+    }
+
+
+    /**
+     * @param other
+     * @return whether this reference implies the other one
+     */
+    public boolean implies ( MethodReference other ) {
+        if ( ( other.anyTaint && !this.anyTaint ) || ( other.calleeTaint && !this.calleeTaint ) ) {
+            return false;
+        }
+        if ( this.intf != other.intf )
+            return false;
+        if ( this.calleeTaint != other.calleeTaint )
+            return false;
+
+        if ( this.typeName == null ) {
+            if ( other.typeName != null )
+                return false;
+        }
+        else if ( !this.typeName.toString().equals(other.typeName.toString()) )
+            return false;
+
+        if ( this.signature == null ) {
+            if ( other.signature != null )
+                return false;
+        }
+        else if ( !this.signature.equals(other.signature) )
+            return false;
+
+        if ( this.argumentTypes == null ) {
+            if ( other.argumentTypes != null )
+                return false;
+        }
+        else if ( !this.argumentTypes.equals(other.argumentTypes) )
+            return false;
+
+        if ( this.targetType == null ) {
+            if ( other.targetType != null )
+                return false;
+        }
+        else if ( !this.targetType.equals(other.targetType) )
+            return false;
+
+        for ( int i = 0; i < this.argsLength; i++ ) {
+            if ( other.isParameterTainted(i) && !this.isParameterTainted(i) ) {
+                return false;
+            }
+            if ( other.isTaintParameterReturn(i) && !this.isTaintParameterReturn(i) ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }

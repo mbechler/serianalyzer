@@ -179,14 +179,15 @@ public final class TypeUtil {
     static Collection<ClassInfo> findImplementors ( MethodReference methodReference, boolean ignoreNonFound, boolean fixedType,
             boolean serializableOnly, Benchmark bench, Index i ) {
         Collection<ClassInfo> impls;
+        DotName tn = methodReference.getTypeName();
         if ( fixedType ) {
-            ClassInfo root = i.getClassByName(methodReference.getTypeName());
+            ClassInfo root = i.getClassByName(tn);
             if ( root == null ) {
                 if ( ignoreNonFound ) {
-                    log.debug("Class not found " + methodReference.getTypeName()); //$NON-NLS-1$
+                    log.debug("Class not found " + methodReference.getTypeNameString()); //$NON-NLS-1$
                 }
                 else {
-                    log.error("Class not found " + methodReference.getTypeName()); //$NON-NLS-1$
+                    log.error("Class not found " + methodReference.getTypeNameString()); //$NON-NLS-1$
                 }
                 return Collections.EMPTY_LIST;
             }
@@ -217,34 +218,49 @@ public final class TypeUtil {
             return Collections.EMPTY_LIST;
         }
         else if ( methodReference.isInterface() ) {
-            Collection<ClassInfo> tmp = i.getAllKnownImplementors(methodReference.getTypeName());
+            Collection<ClassInfo> tmp = i.getAllKnownImplementors(tn);
             if ( serializableOnly ) {
                 impls = new ArrayList<>();
                 for ( ClassInfo ci : tmp ) {
-                    if ( TypeUtil.isSerializable(i, ci) ) {
+                    if ( TypeUtil.implementsMethod(methodReference, ci) && TypeUtil.isSerializable(i, ci) ) {
                         impls.add(ci);
                     }
                 }
                 return impls;
             }
 
+            impls = new ArrayList<>();
+            for ( ClassInfo ci : tmp ) {
+                if ( TypeUtil.implementsMethod(methodReference, ci) ) {
+                    impls.add(ci);
+                }
+            }
+
             if ( bench != null ) {
                 bench.unboundedInterfaceCalls();
             }
-            return tmp;
+            return impls;
         }
         else {
-            impls = new HashSet<>(i.getAllKnownSubclasses(methodReference.getTypeName()));
-            ClassInfo classByName = i.getClassByName(methodReference.getTypeName());
+            ClassInfo classByName = i.getClassByName(tn);
             if ( classByName == null ) {
                 if ( !ignoreNonFound ) {
-                    log.error("Class not found " + methodReference.getTypeName()); //$NON-NLS-1$
+                    log.error("Class not found " + tn); //$NON-NLS-1$
                 }
                 else {
-                    log.debug("Class not found " + methodReference.getTypeName()); //$NON-NLS-1$
+                    log.debug("Class not found " + tn); //$NON-NLS-1$
+                }
+                return Collections.EMPTY_LIST;
+            }
+
+            impls = new HashSet<>();
+            for ( ClassInfo ci : i.getAllKnownSubclasses(tn) ) {
+                if ( TypeUtil.implementsMethod(methodReference, ci) ) {
+                    impls.add(ci);
                 }
             }
-            else {
+
+            if ( TypeUtil.implementsMethod(methodReference, classByName) ) {
                 impls.add(classByName);
             }
             return impls;
@@ -258,7 +274,7 @@ public final class TypeUtil {
     static void checkReferenceTyping ( Index i, boolean ignoreNonFound, MethodReference ref ) {
         if ( !ref.isStatic() ) {
             Type t = ref.getTargetType();
-            Type sigType = Type.getObjectType(ref.getTypeName().toString().replace('.', '/'));
+            Type sigType = Type.getObjectType(ref.getTypeNameString().replace('.', '/'));
             if ( t == null ) {
                 t = sigType;
             }
@@ -318,13 +334,21 @@ public final class TypeUtil {
             return b;
         }
         else if ( ! ( a.getSort() == Type.OBJECT || a.getSort() == Type.ARRAY ) ^ ! ( b.getSort() == Type.OBJECT || b.getSort() == Type.ARRAY ) ) {
-            throw new SerianalyzerException("Incompatible object/non-object types " + a + " and " + b); //$NON-NLS-1$ //$NON-NLS-2$
+            throw new SerianalyzerException("Incompatible object/non-object types " + a + " " + a.getSort() //$NON-NLS-1$//$NON-NLS-2$
+                    + " and " + b + " " + b.getSort()); //$NON-NLS-1$ //$NON-NLS-2$
         }
 
         if ( "java.lang.Object".equals(a.getClassName()) ) { //$NON-NLS-1$
             return b;
         }
         else if ( "java.lang.Object".equals(b.getClassName()) ) { //$NON-NLS-1$
+            return a;
+        }
+
+        if ( "java.io.Serializable".equals(a.getClassName()) ) { //$NON-NLS-1$
+            return b;
+        }
+        else if ( "java.io.Serializable".equals(b.getClassName()) ) { //$NON-NLS-1$
             return a;
         }
 
@@ -373,12 +397,12 @@ public final class TypeUtil {
             }
         }
         else if ( Modifier.isInterface(aInfo.flags()) ) {
-            if ( i.getAllKnownImplementors(aInfo.name()).contains(bInfo) ) {
+            if ( extendsInterface(i, bInfo, aInfo.name()) ) {
                 return b;
             }
         }
         else if ( Modifier.isInterface(bInfo.flags()) ) {
-            if ( i.getAllKnownImplementors(bInfo.name()).contains(aInfo) ) {
+            if ( extendsInterface(i, aInfo, bInfo.name()) ) {
                 return a;
             }
         }
@@ -424,14 +448,34 @@ public final class TypeUtil {
      */
     private static boolean extendsInterface ( Index i, ClassInfo info, DotName ifName ) {
 
+        if ( info == null || info.name() == null ) {
+            log.error("Info is NULL " + info); //$NON-NLS-1$
+            return false;
+        }
+
         if ( info.name().equals(ifName) ) {
             return true;
         }
 
         for ( DotName checkName : info.interfaceNames() ) {
-            if ( extendsInterface(i, i.getClassByName(checkName), ifName) ) {
+            ClassInfo classByName = i.getClassByName(checkName);
+            if ( classByName == null ) {
+                log.error("Failed to find interface " + checkName); //$NON-NLS-1$
+                continue;
+            }
+            if ( extendsInterface(i, classByName, ifName) ) {
                 return true;
             }
+        }
+
+        DotName superName = info.superName();
+        if ( superName != null ) {
+            ClassInfo classByName = i.getClassByName(superName);
+            if ( classByName == null ) {
+                log.warn("Failed to find interface " + superName); //$NON-NLS-1$
+                return false;
+            }
+            return extendsInterface(i, i.getClassByName(superName), ifName);
         }
 
         return false;
@@ -454,12 +498,25 @@ public final class TypeUtil {
                 return true;
             }
 
-            if ( isSerializable(i, i.getClassByName(ifName)) ) {
+            ClassInfo classByName = i.getClassByName(ifName);
+            if ( classByName == null ) {
+                log.debug("Failed to find implemented interface " + ifName); //$NON-NLS-1$
+                return false;
+            }
+            if ( isSerializable(i, classByName) ) {
                 return true;
             }
         }
 
-        return isSerializable(i, i.getClassByName(impl.superName()));
+        if ( impl.superName() == null ) {
+            return false;
+        }
+        ClassInfo classByName = i.getClassByName(impl.superName());
+        if ( classByName == null ) {
+            log.debug("Failed to find superclass " + impl.superName()); //$NON-NLS-1$
+            return false;
+        }
+        return isSerializable(i, classByName);
     }
 
 
@@ -471,6 +528,10 @@ public final class TypeUtil {
     static List<ClassInfo> checkInterfaces ( Index i, MethodReference methodReference, ClassInfo cur ) {
         for ( DotName ifName : cur.interfaceNames() ) {
             ClassInfo ifImpl = i.getClassByName(ifName);
+            if ( ifImpl == null ) {
+                log.warn("Failed to find interface " + ifName); //$NON-NLS-1$
+                continue;
+            }
             if ( implementsMethod(methodReference, ifImpl) ) {
                 return Arrays.asList(ifImpl);
             }

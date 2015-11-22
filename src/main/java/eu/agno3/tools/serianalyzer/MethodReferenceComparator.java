@@ -23,7 +23,7 @@ public class MethodReferenceComparator implements Comparator<MethodReference> {
      */
     @Override
     public int compare ( MethodReference o1, MethodReference o2 ) {
-        int res = o1.getTypeName().toString().compareTo(o2.getTypeName().toString());
+        int res = o1.getTypeNameString().compareTo(o2.getTypeNameString());
         if ( res != 0 ) {
             return res;
         }

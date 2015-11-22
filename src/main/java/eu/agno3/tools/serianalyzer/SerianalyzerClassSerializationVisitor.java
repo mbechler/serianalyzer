@@ -8,7 +8,6 @@ package eu.agno3.tools.serianalyzer;
 
 
 import org.apache.log4j.Logger;
-import org.jboss.jandex.DotName;
 import org.objectweb.asm.Attribute;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -23,7 +22,7 @@ public class SerianalyzerClassSerializationVisitor extends ClassVisitor implemen
 
     private static final Logger log = Logger.getLogger(SerianalyzerClassSerializationVisitor.class);
 
-    private DotName clName;
+    private String clName;
     private Serianalyzer analyzer;
     private boolean serializable;
 
@@ -36,7 +35,7 @@ public class SerianalyzerClassSerializationVisitor extends ClassVisitor implemen
      * @param serializable
      * 
      */
-    public SerianalyzerClassSerializationVisitor ( Serianalyzer analyzer, DotName clName, boolean serializable ) {
+    public SerianalyzerClassSerializationVisitor ( Serianalyzer analyzer, String clName, boolean serializable ) {
         super(Opcodes.ASM5);
         this.analyzer = analyzer;
         this.clName = clName;
@@ -57,7 +56,7 @@ public class SerianalyzerClassSerializationVisitor extends ClassVisitor implemen
      * @return the clName
      */
     @Override
-    public DotName getClassName () {
+    public String getClassName () {
         return this.clName;
     }
 

@@ -30,6 +30,7 @@ public class Main {
      * @param args
      */
     public static void main ( String[] args ) {
+        long start = System.currentTimeMillis();
 
         List<String> remainArgs = new ArrayList<>();
         SerianalyzerConfig config = configure(args, remainArgs);
@@ -65,6 +66,8 @@ public class Main {
         catch ( SerianalyzerException e ) {
             log.error("Failed to perform analysis", e); //$NON-NLS-1$
         }
+
+        log.info("Completed, took " + ( System.currentTimeMillis() - start ) / 1000 + " s"); //$NON-NLS-1$ //$NON-NLS-2$
 
     }
 

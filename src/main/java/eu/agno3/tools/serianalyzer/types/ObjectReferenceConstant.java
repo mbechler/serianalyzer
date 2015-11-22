@@ -7,7 +7,6 @@
 package eu.agno3.tools.serianalyzer.types;
 
 
-import org.jboss.jandex.DotName;
 import org.objectweb.asm.Type;
 
 
@@ -17,7 +16,7 @@ import org.objectweb.asm.Type;
  */
 public class ObjectReferenceConstant extends BaseType implements SimpleType {
 
-    private DotName clazz;
+    private String clazz;
     private Type t;
 
 
@@ -26,7 +25,7 @@ public class ObjectReferenceConstant extends BaseType implements SimpleType {
      * @param t
      * @param clazz
      */
-    public ObjectReferenceConstant ( boolean tainted, Type t, DotName clazz ) {
+    public ObjectReferenceConstant ( boolean tainted, Type t, String clazz ) {
         super(tainted, "Objref " + clazz); //$NON-NLS-1$
         this.t = t;
         this.clazz = clazz;
@@ -36,7 +35,7 @@ public class ObjectReferenceConstant extends BaseType implements SimpleType {
     /**
      * @return the clazz
      */
-    public DotName getClassName () {
+    public String getClassName () {
         return this.clazz;
     }
 

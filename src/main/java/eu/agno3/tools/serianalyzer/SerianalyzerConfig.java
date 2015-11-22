@@ -77,9 +77,7 @@ public class SerianalyzerConfig {
         String clname = method.substring(0, methSep);
         String mname = method.substring(methSep + 2, sigStart - 1).trim();
 
-        DotName dn = DotName.createSimple(clname);
-
-        wl.add(new MethodReference(dn, false, mname, stat, sig));
+        wl.add(new MethodReference(clname, false, mname, stat, sig));
     }
 
 
@@ -158,11 +156,11 @@ public class SerianalyzerConfig {
      */
     public boolean isWhitelisted ( MethodReference ref ) {
 
-        if ( ref.getTypeName().toString().endsWith("[]") && "clone".equals(ref.getMethod()) ) { //$NON-NLS-1$ //$NON-NLS-2$
+        if ( ref.getTypeNameString().endsWith("[]") && "clone".equals(ref.getMethod()) ) { //$NON-NLS-1$ //$NON-NLS-2$
             return true;
         }
 
-        String className = ref.getTypeName().toString();
+        String className = ref.getTypeNameString();
         if ( ref.getTargetType() != null ) {
             className = ref.getTargetType().getClassName();
         }
@@ -206,10 +204,10 @@ public class SerianalyzerConfig {
      * @return an target type to fix for the reference
      */
     public DotName getFixedType ( MethodReference methodReference ) {
-        if ( this.useHeuristics && "java.io.ObjectInput".equals(methodReference.getTypeName().toString()) ) {
+        if ( this.useHeuristics && "java.io.ObjectInput".equals(methodReference.getTypeNameString()) ) {
             return DotName.createSimple("java.io.ObjectInputStream");
         }
-        else if ( this.useHeuristics && "java.io.ObjectInputStream".equals(methodReference.getTypeName().toString()) ) { //$NON-NLS-1$
+        else if ( this.useHeuristics && "java.io.ObjectInputStream".equals(methodReference.getTypeNameString()) ) { //$NON-NLS-1$
             return methodReference.getTypeName();
         }
         return null;
@@ -238,11 +236,11 @@ public class SerianalyzerConfig {
      */
     public boolean restrictToSerializable ( MethodReference methodReference ) {
 
-        if ( this.useHeuristics && "java.lang.Runnable".equals(methodReference.getTypeName().toString()) ) {
+        if ( this.useHeuristics && "java.lang.Runnable".equals(methodReference.getTypeNameString()) ) {
             return true;
         }
 
-        if ( this.useHeuristics && "java.lang.Enumeration".equals(methodReference.getTypeName().toString()) ) {
+        if ( this.useHeuristics && "java.lang.Enumeration".equals(methodReference.getTypeNameString()) ) {
             return true;
         }
 

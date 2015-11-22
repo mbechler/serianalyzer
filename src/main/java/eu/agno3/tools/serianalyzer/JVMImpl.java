@@ -153,11 +153,20 @@ public final class JVMImpl {
         case Opcodes.BALOAD:
         case Opcodes.CALOAD:
         case Opcodes.SALOAD:
+            o1 = s.pop();
+            o2 = s.pop();
+            s.push(new BasicVariable(toType(opcode), "primitive array elem", ( o1 == null || o1.isTainted() ) | ( o2 == null || o2.isTainted() ))); //$NON-NLS-1$
+            break;
+
         case Opcodes.AALOAD:
             o1 = s.pop();
             o2 = s.pop();
             if ( o1 != null && o2 instanceof SimpleType && ( (SimpleType) o2 ).getType().toString().startsWith("[") ) { //$NON-NLS-1$
                 Type atype = Type.getType( ( (SimpleType) o2 ).getType().toString().substring(1));
+                if ( o2.getAlternativeTypes() != null && !o2.getAlternativeTypes().isEmpty() ) {
+                    s.clear();
+                    break;
+                }
                 s.push(new BasicVariable(atype, "array elem " + atype, o1.isTainted() | o2.isTainted())); //$NON-NLS-1$
             }
             else {
@@ -368,7 +377,7 @@ public final class JVMImpl {
         BaseType o;
         switch ( opcode ) {
         case Opcodes.NEW:
-            s.push(new ObjectReferenceConstant(false, Type.getObjectType(type), DotName.createSimple(type.replace('/', '.'))));
+            s.push(new ObjectReferenceConstant(false, Type.getObjectType(type), type.replace('/', '.')));
             break;
         case Opcodes.ANEWARRAY:
             s.pop();
@@ -394,6 +403,9 @@ public final class JVMImpl {
             break;
         case Opcodes.INSTANCEOF:
             o = s.pop();
+            if ( o != null ) {
+                o.addAlternativeType(Type.getObjectType(type));
+            }
             s.push(new BasicConstant(Type.BOOLEAN_TYPE, "typeof " + o + " = " + type, ! ( o != null ) || o.isTainted())); //$NON-NLS-1$ //$NON-NLS-2$
             break;
         }
@@ -556,6 +568,20 @@ public final class JVMImpl {
             return Type.DOUBLE_TYPE;
         case Opcodes.ALOAD:
             return Type.getType("Ljava/lang/Object;"); //$NON-NLS-1$
+        case Opcodes.IALOAD:
+            return Type.INT_TYPE;
+        case Opcodes.LALOAD:
+            return Type.LONG_TYPE;
+        case Opcodes.FALOAD:
+            return Type.FLOAT_TYPE;
+        case Opcodes.DALOAD:
+            return Type.DOUBLE_TYPE;
+        case Opcodes.BALOAD:
+            return Type.BYTE_TYPE;
+        case Opcodes.CALOAD:
+            return Type.CHAR_TYPE;
+        case Opcodes.SALOAD:
+            return Type.SHORT_TYPE;
         }
         return Type.VOID_TYPE;
     }

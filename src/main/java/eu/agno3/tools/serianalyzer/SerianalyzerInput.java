@@ -7,8 +7,6 @@
 package eu.agno3.tools.serianalyzer;
 
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,9 +19,11 @@ import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import javax.activation.DataSource;
+import javax.activation.URLDataSource;
+
 import org.apache.log4j.Logger;
 import org.jboss.jandex.ClassInfo;
-import org.jboss.jandex.DotName;
 import org.jboss.jandex.Index;
 import org.jboss.jandex.Indexer;
 
@@ -46,7 +46,7 @@ public class SerianalyzerInput {
     /**
      * 
      */
-    private Map<DotName, byte[]> classData = new HashMap<>();
+    private Map<String, DataSource> classData = new HashMap<>();
     /**
      * 
      */
@@ -87,22 +87,17 @@ public class SerianalyzerInput {
      * @throws IOException
      */
     public void index ( File jarFile ) throws IOException {
-        log.debug("Indexing " + jarFile); //$NON-NLS-1$
-        try ( JarFile jar = new JarFile(jarFile) ) {
-            Enumeration<JarEntry> entries = jar.entries();
-            while ( entries.hasMoreElements() ) {
-                JarEntry entry = entries.nextElement();
-                if ( entry.getName().endsWith(".class") ) { //$NON-NLS-1$
-                    try ( InputStream stream = jar.getInputStream(entry) ) {
-                        index(stream);
-                    }
-                    catch ( IOException e ) {
-                        log.error("Failed to index class file " + entry.getName() + " in " + jarFile, e); //$NON-NLS-1$ //$NON-NLS-2$
-                    }
-                }
-                else if ( entry.getName().endsWith(".jar") ) { //$NON-NLS-1$
-                    log.error("Nested JARs not yet supported " + entry.getName()); //$NON-NLS-1$
-                }
+        log.debug("Indexing file " + jarFile); //$NON-NLS-1$
+        @SuppressWarnings ( "resource" )
+        JarFile jar = new JarFile(jarFile);
+        Enumeration<JarEntry> entries = jar.entries();
+        while ( entries.hasMoreElements() ) {
+            JarEntry entry = entries.nextElement();
+            if ( entry.getName().endsWith(".class") ) { //$NON-NLS-1$
+                index(new JARDataSource(jar, entry));
+            }
+            else if ( entry.getName().endsWith(".jar") ) { //$NON-NLS-1$
+                log.error("Nested JARs not yet supported " + entry.getName()); //$NON-NLS-1$
             }
         }
     }
@@ -115,28 +110,19 @@ public class SerianalyzerInput {
      */
     public void index ( URL u ) throws IOException {
         try ( InputStream openStream = u.openStream() ) {
-            index(openStream);
+            index(new URLDataSource(u));
         }
     }
 
 
     /**
      * 
-     * @param is
+     * @param source
      * @throws IOException
      */
-    public void index ( InputStream is ) throws IOException {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-
-        byte[] buffer = new byte[4096];
-        int read = 0;
-
-        while ( ( read = is.read(buffer) ) >= 0 ) {
-            bos.write(buffer, 0, read);
-        }
-
-        ClassInfo ci = this.indexer.index(new ByteArrayInputStream(bos.toByteArray()));
-        if ( this.classData.put(ci.name(), bos.toByteArray()) != null ) {
+    public void index ( DataSource source ) throws IOException {
+        ClassInfo ci = this.indexer.index(source.getInputStream());
+        if ( this.classData.put(ci.name().toString(), new ByteDataSource(source)) != null ) {
             log.warn("Duplicate class " + ci.name()); //$NON-NLS-1$
         }
     }
@@ -148,7 +134,7 @@ public class SerianalyzerInput {
      */
     public void index ( Path p ) throws IOException {
         if ( Files.isDirectory(p) ) {
-            Files.find(p, 5, ( t, u ) -> t.getFileName().toString().endsWith(".jar")).forEach(r -> { //$NON-NLS-1$
+            Files.find(p, 10, ( t, u ) -> t.getFileName().toString().endsWith(".jar")).forEach(r -> { //$NON-NLS-1$
                     try {
                         index(r.toFile());
                     }
@@ -171,12 +157,13 @@ public class SerianalyzerInput {
     /**
      * @param typeName
      * @return class bytecode data
+     * @throws IOException
      */
-    public InputStream getClassData ( DotName typeName ) {
-        byte[] data = this.classData.get(typeName);
+    public InputStream getClassData ( String typeName ) throws IOException {
+        DataSource data = this.classData.get(typeName);
         if ( data == null ) {
             return null;
         }
-        return new ByteArrayInputStream(data);
+        return data.getInputStream();
     }
 }

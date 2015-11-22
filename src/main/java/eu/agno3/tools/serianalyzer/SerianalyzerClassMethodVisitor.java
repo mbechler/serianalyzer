@@ -8,7 +8,6 @@ package eu.agno3.tools.serianalyzer;
 
 
 import org.apache.log4j.Logger;
-import org.jboss.jandex.DotName;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -22,7 +21,7 @@ public class SerianalyzerClassMethodVisitor extends ClassVisitor implements Seri
 
     private static final Logger log = Logger.getLogger(SerianalyzerClassMethodVisitor.class);
 
-    private DotName clName;
+    private String clName;
     private Serianalyzer analyzer;
 
     private MethodReference ref;
@@ -36,7 +35,7 @@ public class SerianalyzerClassMethodVisitor extends ClassVisitor implements Seri
      * @param clName
      * 
      */
-    public SerianalyzerClassMethodVisitor ( Serianalyzer analyzer, MethodReference ref, DotName clName ) {
+    public SerianalyzerClassMethodVisitor ( Serianalyzer analyzer, MethodReference ref, String clName ) {
         super(Opcodes.ASM5);
         this.analyzer = analyzer;
         this.ref = ref;
@@ -60,7 +59,7 @@ public class SerianalyzerClassMethodVisitor extends ClassVisitor implements Seri
      * @return the clName
      */
     @Override
-    public DotName getClassName () {
+    public String getClassName () {
         return this.clName;
     }
 

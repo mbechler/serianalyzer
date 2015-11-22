@@ -19,9 +19,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
@@ -43,6 +45,8 @@ public class Serianalyzer {
 
     private SerianalyzerInput input;
     private SerianalyzerState state;
+
+    private Map<String, Boolean> serializableCache = new HashMap<>();
 
 
     /**
@@ -77,7 +81,7 @@ public class Serianalyzer {
         else {
             runAnalysis();
             save();
-            log.info(String.format("Found a total %d method reachable", this.state.getKnown().size())); //$NON-NLS-1$
+            log.info(String.format("Found a total %d method calls reachable", this.state.getTotalKnownCount())); //$NON-NLS-1$
             log.info(String.format("Found a total %d native method initially reachable", this.state.getNativeMethods().size())); //$NON-NLS-1$
             log.info(String.format("Found a total %d safe methods", this.state.getSafe().size())); //$NON-NLS-1$
             filterAndDump();
@@ -97,8 +101,8 @@ public class Serianalyzer {
         Set<DotName> usedInstantiable = new HashSet<>();
         long nonWhitelist = dumpMethodCalls(dump, usedInstantiable, "Potentially unsafe native call "); //$NON-NLS-1$
         log.info(String.format("Found %d non-whitelisted native methods", nonWhitelist)); //$NON-NLS-1$
-        long stPuts = dumpMethodCalls(this.state.getStaticPuts(), usedInstantiable, "Potentially unsafe static put in "); //$NON-NLS-1$
-        log.info(String.format("Found %d potentially unsafe static puts", stPuts)); //$NON-NLS-1$
+        //long stPuts = dumpMethodCalls(this.state.getStaticPuts(), usedInstantiable, "Potentially unsafe static put in "); //$NON-NLS-1$
+        //log.info(String.format("Found %d potentially unsafe static puts", stPuts)); //$NON-NLS-1$
 
         if ( this.input.getConfig().isDumpInstantiationInfo() ) {
             dumpInstantiable(usedInstantiable);
@@ -133,7 +137,7 @@ public class Serianalyzer {
      */
     private void restore () throws SerianalyzerException {
         if ( this.input.getConfig().getRestoreFrom() != null ) {
-            log.info("Loading state"); //$NON-NLS-1$
+            log.info("Loading state..."); //$NON-NLS-1$
             try ( FileInputStream fis = new FileInputStream(this.input.getConfig().getRestoreFrom());
                   ObjectInputStream ois = new ObjectInputStream(fis) ) {
                 this.state = (SerianalyzerState) ois.readObject();
@@ -143,6 +147,7 @@ public class Serianalyzer {
                 ClassNotFoundException e ) {
                 throw new SerianalyzerException("Failed to restore state", e); //$NON-NLS-1$
             }
+            log.info("Loaded state"); //$NON-NLS-1$
         }
     }
 
@@ -165,7 +170,7 @@ public class Serianalyzer {
 
         while ( !this.state.getToCheck().isEmpty() ) {
             MethodReference method = this.state.getToCheck().poll();
-            this.state.getKnown().add(method);
+            this.state.trackKnown(method);
             doCheckMethod(method);
         }
     }
@@ -180,16 +185,11 @@ public class Serianalyzer {
         this.state.getSafe().addAll(this.input.getConfig().getNativeWhiteList());
         this.state.getNativeMethods().removeAll(this.input.getConfig().getNativeWhiteList());
 
-        Set<MethodReference> knownIgnoreTaint = new HashSet<>();
-        for ( MethodReference ref : this.state.getKnown() ) {
-            knownIgnoreTaint.add(ref.comparable());
-        }
-        this.state.setKnown(knownIgnoreTaint);
         for ( MethodReference s : this.state.getSafe() ) {
             removeSafeCalls(s);
         }
 
-        log.info(String.format("Remaining methods %d", this.state.getKnown().size())); //$NON-NLS-1$
+        log.info(String.format("Remaining methods %d", this.state.getTotalKnownCount())); //$NON-NLS-1$
         Set<MethodReference> toRemove = new HashSet<>();
 
         boolean anyChanged = true;
@@ -198,15 +198,16 @@ public class Serianalyzer {
             i++;
             log.info("Filtering: iteration " + i + "..."); //$NON-NLS-1$ //$NON-NLS-2$
             anyChanged = false;
-            anyChanged |= removeRecursiveInstatiations();
+            anyChanged |= removeUninstantiable();
 
             Set<MethodReference> known = new HashSet<>(this.state.getMethodCallers().keySet());
             for ( MethodReference kn : known ) {
                 anyChanged |= removeNonReachable(kn, this.state.getInitial(), toRemove);
             }
-            removeIgnoreTaint(this.state.getKnown(), toRemove);
+            this.state.removeAllKnown(toRemove);
             this.state.getStaticPuts().removeAll(toRemove);
-            log.info(String.format("Remaining methods %d", this.state.getKnown().size())); //$NON-NLS-1$
+            log.info(String.format("Remaining methods %d", this.state.getTotalKnownCount())); //$NON-NLS-1$
+            log.info(String.format("Remaining instantiable types %d", this.state.getInstantiableTypes().size())); //$NON-NLS-1$
             removeIgnoreTaint(this.state.getNativeMethods(), toRemove);
             toRemove.clear();
         }
@@ -221,11 +222,11 @@ public class Serianalyzer {
      * @return
      * 
      */
-    private boolean removeRecursiveInstatiations () {
+    private boolean removeUninstantiable () {
         Set<String> toRemove = new HashSet<>();
         for ( String typeName : this.state.getInstantiableTypes() ) {
 
-            if ( TypeUtil.isSerializable(this.input.getIndex(), this.input.getIndex().getClassByName(DotName.createSimple(typeName))) ) {
+            if ( this.isTypeSerializable(this.getIndex(), typeName) ) {
                 continue;
             }
 
@@ -233,6 +234,7 @@ public class Serianalyzer {
                 log.debug("All instantiations are recursive for " + typeName); //$NON-NLS-1$
                 toRemove.add(typeName);
             }
+
         }
         return this.state.getInstantiableTypes().removeAll(toRemove);
     }
@@ -247,6 +249,11 @@ public class Serianalyzer {
         long nonWhitelist = 0;
         for ( MethodReference cal : dump ) {
             cal = cal.comparable();
+
+            if ( this.input.getConfig().isWhitelisted(cal) ) {
+                continue;
+            }
+
             Set<MethodReference> callers = this.state.getMethodCallers().get(cal);
             if ( callers == null || callers.isEmpty() ) {
                 continue;
@@ -317,7 +324,7 @@ public class Serianalyzer {
             List<MethodReference> p = toVisit.poll();
             MethodReference r = p.get(p.size() - 1);
 
-            if ( targets.contains(r) ) {
+            if ( targets.contains(r) && !this.state.getMaximumTaintStatus(r).isParameterTainted(0) ) {
                 if ( this.input.getConfig().isWhitelisted(r) ) {
                     continue;
                 }
@@ -325,12 +332,13 @@ public class Serianalyzer {
                 limit--;
 
                 for ( MethodReference elem : p ) {
-                    System.out.print(prefix + this.state.getMaximumTaintStatus().get(elem.comparable()));
-                    if ( TypeUtil.isSerializable(this.input.getIndex(), this.input.getIndex().getClassByName(elem.getTypeName())) ) {
+                    System.out.print(prefix + this.state.getMaximumTaintStatus(elem));
+                    DotName tn = elem.getTypeName();
+                    if ( this.isTypeSerializable(getIndex(), elem.getTypeNameString()) ) {
                         System.out.println(" serializable"); //$NON-NLS-1$
                     }
                     else if ( this.state.isInstantiable(elem) ) {
-                        usedInstantiable.add(elem.getTypeName());
+                        usedInstantiable.add(tn);
                         System.out.println(" instantiable"); //$NON-NLS-1$
                     }
                     else {
@@ -378,7 +386,6 @@ public class Serianalyzer {
 
         if ( checkAllRecursive(typeName.toString(), this.state.getInitial()) ) {
             log.warn("All instantiations are recursive for " + typeName); //$NON-NLS-1$
-            // return;
         }
 
         int limit = 3;
@@ -397,8 +404,8 @@ public class Serianalyzer {
                 }
 
                 found.add(comparable);
-                System.out.print(prefix + "-> " + this.state.getMaximumTaintStatus().get(comparable)); //$NON-NLS-1$
-                boolean nonSerializable = !TypeUtil.isSerializable(this.getIndex(), this.getIndex().getClassByName(r.getTypeName()));
+                System.out.print(prefix + "-> " + this.state.getMaximumTaintStatus(comparable)); //$NON-NLS-1$
+                boolean nonSerializable = !this.isTypeSerializable(getIndex(), r.getTypeNameString());
                 Set<MethodReference> callers = this.state.getMethodCallers().get(comparable);
 
                 if ( !nonSerializable && ( callers == null || callers.isEmpty() ) ) {
@@ -444,14 +451,11 @@ public class Serianalyzer {
                 return false;
             }
 
-            DotName refTypeName = r.getTypeName();
-            ClassInfo classByName = this.input.getIndex().getClassByName(refTypeName);
-
-            if ( TypeUtil.isSerializable(this.input.getIndex(), classByName) ) {
+            if ( this.isTypeSerializable(this.getIndex(), r.getTypeNameString()) ) {
                 return false;
             }
 
-            Set<MethodReference> set = this.state.getInstantiatedThrough().get(refTypeName.toString());
+            Set<MethodReference> set = this.state.getInstantiatedThrough().get(r.getTypeNameString());
             if ( set != null && !set.isEmpty() ) {
                 for ( MethodReference ref : set ) {
                     Set<MethodReference> callers = this.state.getMethodCallers().get(ref.comparable());
@@ -461,6 +465,17 @@ public class Serianalyzer {
                     }
 
                     for ( MethodReference c : callers ) {
+                        if ( targets.contains(c) ) {
+                            return false;
+                        }
+                        if ( this.isTypeSerializable(this.getIndex(), c.getTypeNameString()) ) {
+                            return false;
+                        }
+
+                        if ( this.state.isInstantiable(ref) ) {
+
+                        }
+
                         if ( c.isStatic() ) {
                             Set<MethodReference> origCallers = new HashSet<>();
                             resolveNonStaticCallers(c, origCallers, new HashSet<>());
@@ -481,7 +496,7 @@ public class Serianalyzer {
                 }
             }
             else {
-                log.debug("No instantiations found for " + refTypeName.toString()); //$NON-NLS-1$
+                log.debug("No instantiations found for " + r.getTypeNameString()); //$NON-NLS-1$
             }
         }
 
@@ -490,6 +505,24 @@ public class Serianalyzer {
         }
         return true;
 
+    }
+
+
+    /**
+     * @param index
+     * @param classByName
+     * @return
+     */
+    private boolean isTypeSerializable ( Index index, String typeName ) {
+
+        Boolean s = this.serializableCache.get(typeName);
+        if ( s != null ) {
+            return s;
+        }
+        ClassInfo classByName = index.getClassByName(DotName.createSimple(typeName));
+        s = TypeUtil.isSerializable(index, classByName);
+        this.serializableCache.put(typeName, s);
+        return s;
     }
 
 
@@ -529,10 +562,10 @@ public class Serianalyzer {
         }
         boolean foundSerializable = false;
         for ( MethodReference r : p ) {
-            if ( TypeUtil.isSerializable(this.input.getIndex(), this.input.getIndex().getClassByName(r.getTypeName())) ) {
+            if ( this.isTypeSerializable(getIndex(), r.getTypeNameString()) ) {
                 foundSerializable = true;
             }
-            else if ( foundSerializable && !TypeUtil.isSerializable(this.input.getIndex(), this.input.getIndex().getClassByName(r.getTypeName())) ) {
+            else if ( foundSerializable && !this.isTypeSerializable(this.input.getIndex(), r.getTypeNameString()) ) {
                 if ( log.isDebugEnabled() ) {
                     log.debug("Intermediate non serializable type " + p); //$NON-NLS-1$
                 }
@@ -556,8 +589,6 @@ public class Serianalyzer {
             return false;
         }
 
-        ClassInfo classByName = this.input.getIndex().getClassByName(s.getTypeName());
-
         if ( this.input.getConfig().isWhitelisted(s) ) {
             if ( log.isDebugEnabled() ) {
                 log.debug("Removing because of whitelist " + s); //$NON-NLS-1$
@@ -576,7 +607,7 @@ public class Serianalyzer {
             return false;
         }
 
-        if ( !s.isInterface() && ( s.isStatic() || TypeUtil.isSerializable(this.input.getIndex(), classByName) || this.state.isInstantiable(s) ) ) {
+        if ( !s.isInterface() && ( s.isStatic() || this.isTypeSerializable(this.getIndex(), s.getTypeNameString()) || this.state.isInstantiable(s) ) ) {
             return false;
         }
 
@@ -592,7 +623,7 @@ public class Serianalyzer {
      */
     private void removeSafeCalls ( MethodReference ref ) {
         MethodReference s = ref.comparable();
-        if ( !this.state.getKnown().remove(s) ) {
+        if ( !this.state.removeAllKnown(Collections.singleton(s)) ) {
             return;
         }
 
@@ -635,24 +666,31 @@ public class Serianalyzer {
      * @throws SerianalyzerException
      */
     private void checkClass ( ClassInfo ci ) throws SerianalyzerException {
-        try ( InputStream data = this.input.getClassData(ci.name()) ) {
+        DotName dname = ci.name();
+        String dnameString = dname.toString();
+        try ( InputStream data = this.input.getClassData(dnameString) ) {
             if ( data == null ) {
-                log.error("No class data for " + ci.name()); //$NON-NLS-1$
+                log.error("No class data for " + dname); //$NON-NLS-1$
                 return;
             }
-            boolean serializable = TypeUtil.isSerializable(this.input.getIndex(), ci);
+            boolean serializable = this.isTypeSerializable(this.getIndex(), dnameString);
             ClassReader cr = new ClassReader(data);
-            SerianalyzerClassSerializationVisitor visitor = new SerianalyzerClassSerializationVisitor(this, ci.name(), serializable);
+            SerianalyzerClassSerializationVisitor visitor = new SerianalyzerClassSerializationVisitor(this, dnameString, serializable);
             cr.accept(visitor, 0);
             if ( serializable ) {
-                checkClass(this.input.getIndex().getClassByName(ci.superName()));
+                ClassInfo classByName = this.input.getIndex().getClassByName(ci.superName());
+                if ( classByName == null ) {
+                    log.error("Failed to locate super class " + ci.superName()); //$NON-NLS-1$
+                    return;
+                }
+                checkClass(classByName);
             }
             else if ( !visitor.isFoundDefaultConstructor() ) {
-                log.trace("No default constructor found in first non-serializable parent " + ci.name()); //$NON-NLS-1$
+                log.trace("No default constructor found in first non-serializable parent " + dname); //$NON-NLS-1$
             }
         }
         catch ( IOException e ) {
-            throw new SerianalyzerException("Failed to read class data" + ci.name(), e); //$NON-NLS-1$
+            throw new SerianalyzerException("Failed to read class data" + dname, e); //$NON-NLS-1$
         }
     }
 
@@ -668,7 +706,13 @@ public class Serianalyzer {
 
         boolean fixedType = wantFixedType;
         MethodReference methodReference = initialRef;
+        MethodReference comparable = methodReference.comparable();
         boolean serializableOnly = wantSerializableOnly;
+
+        if ( isImplied(comparable, methodReference) ) {
+            this.getState().getBench().impliedCall();
+            return false;
+        }
 
         if ( this.input.getConfig().isWhitelisted(methodReference) ) {
             if ( log.isDebugEnabled() ) {
@@ -688,24 +732,24 @@ public class Serianalyzer {
         }
 
         if ( "<init>".equals(methodReference.getMethod()) ) { //$NON-NLS-1$
-            this.state.trackInstantiable(methodReference.getTypeName(), methodReference);
+            this.state.trackInstantiable(methodReference.getTypeNameString(), methodReference);
 
         }
 
         this.state.traceCalls(methodReference, cal);
 
-        if ( this.state.getKnown().contains(methodReference) ) {
+        if ( this.state.isKnown(methodReference) ) {
             if ( log.isTraceEnabled() ) {
                 log.trace("Method already found " + methodReference); //$NON-NLS-1$
             }
             return true;
         }
 
-        if ( this.state.getSafe().contains(methodReference) ) {
+        if ( this.state.getSafe().contains(comparable) ) {
             return false;
         }
 
-        this.state.getKnown().add(methodReference);
+        this.state.trackKnown(methodReference);
         Collection<ClassInfo> impls = findImplementors(methodReference, fixedType, serializableOnly, true);
 
         if ( impls.isEmpty() ) {
@@ -715,18 +759,10 @@ public class Serianalyzer {
 
         boolean anyFound = false;
         for ( ClassInfo impl : impls ) {
-            boolean found = TypeUtil.implementsMethod(methodReference, impl);
-            if ( !found ) {
-                if ( fixedType ) {
-                    log.warn("Method not found in fixed type " + methodReference); //$NON-NLS-1$
-                }
-                continue;
-            }
-
             MethodReference e = methodReference.adaptToType(impl.name());
             TypeUtil.checkReferenceTyping(this.input.getIndex(), this.input.getConfig().isIgnoreNonFound(), e);
             this.state.traceCalls(e, cal);
-            this.state.getKnown().add(e);
+            this.state.trackKnown(e);
             this.state.getToCheck().add(e);
             anyFound = true;
         }
@@ -737,6 +773,23 @@ public class Serianalyzer {
 
         return anyFound;
 
+    }
+
+
+    /**
+     * @param comparable
+     * @param methodReference
+     * @return
+     */
+    private boolean isImplied ( MethodReference comparable, MethodReference methodReference ) {
+
+        for ( MethodReference ref : this.state.getAlreadyKnown(comparable) ) {
+            if ( ref.implies(methodReference) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 
@@ -785,9 +838,9 @@ public class Serianalyzer {
             log.trace(String.format("Checking reference %s", methodReference)); //$NON-NLS-1$
         }
 
-        try ( InputStream data = this.input.getClassData(methodReference.getTypeName()) ) {
+        try ( InputStream data = this.input.getClassData(methodReference.getTypeNameString()) ) {
             if ( data == null ) {
-                log.error("No class data for " + methodReference.getTypeName()); //$NON-NLS-1$
+                log.error("No class data for " + methodReference.getTypeNameString()); //$NON-NLS-1$
                 return;
             }
 
@@ -796,7 +849,7 @@ public class Serianalyzer {
             }
 
             ClassReader cr = new ClassReader(data);
-            SerianalyzerClassMethodVisitor visitor = new SerianalyzerClassMethodVisitor(this, methodReference, methodReference.getTypeName());
+            SerianalyzerClassMethodVisitor visitor = new SerianalyzerClassMethodVisitor(this, methodReference, methodReference.getTypeNameString());
             cr.accept(visitor, 0);
 
             if ( !visitor.isFound() ) {
@@ -833,7 +886,7 @@ public class Serianalyzer {
         boolean fixedType = wantFixedType;
         boolean serializableOnly = wantSerializableOnly;
 
-        String tName = ref.getTypeName().toString();
+        String tName = ref.getTypeNameString();
         if ( tName.endsWith("[]") && "clone".equals(ref.getMethod()) ) { //$NON-NLS-1$ //$NON-NLS-2$
             return Type.getType("L" + tName.replace('.', '/') + ";"); //$NON-NLS-1$ //$NON-NLS-2$
         }
@@ -950,11 +1003,12 @@ public class Serianalyzer {
             return;
         }
         if ( retType.getSort() == Type.OBJECT ) {
-            DotName typeName = DotName.createSimple(retType.getClassName());
+            String className = retType.getClassName();
+            DotName typeName = DotName.createSimple(className);
             ClassInfo classByName = this.input.getIndex().getClassByName(typeName);
             if ( classByName != null ) {
-                if ( !"java.lang.Object".equals(retType.getClassName()) && !TypeUtil.isSerializable(this.input.getIndex(), classByName) && ( classByName.flags() & Modifier.INTERFACE ) == 0 ) { //$NON-NLS-1$
-                    this.state.trackInstantiable(typeName, ref);
+                if ( !"java.lang.Object".equals(className) && !this.isTypeSerializable(this.getIndex(), className) && ( classByName.flags() & Modifier.INTERFACE ) == 0 ) { //$NON-NLS-1$
+                    this.state.trackInstantiable(className, ref);
                 }
             }
         }
