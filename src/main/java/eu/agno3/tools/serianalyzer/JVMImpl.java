@@ -436,8 +436,8 @@ public final class JVMImpl {
                 s.push(v.iterator().next());
             }
             else {
-                Set<Object> alts = new HashSet<>();
-                for ( Object o : v ) {
+                Set<BaseType> alts = new HashSet<>();
+                for ( BaseType o : v ) {
                     if ( o instanceof MultiAlternatives && ! ( (MultiAlternatives) o ).getAlternatives().isEmpty() ) {
                         alts.addAll( ( (MultiAlternatives) o ).getAlternatives());
                     }

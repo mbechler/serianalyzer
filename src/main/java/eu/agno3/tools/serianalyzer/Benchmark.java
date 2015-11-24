@@ -46,6 +46,8 @@ public class Benchmark implements Serializable {
 
     private int impliedCalls;
 
+    private int methodLimitReached;
+
 
     /**
      * 
@@ -138,10 +140,19 @@ public class Benchmark implements Serializable {
     /**
      * 
      */
+    public void reachedMethodLimit () {
+        this.methodLimitReached++;
+    }
+
+
+    /**
+     * 
+     */
     public void dump () {
         log.info("Total calls " + ( this.taintedCall + this.untaintedCall )); //$NON-NLS-1$
         log.info("Tainted calls " + this.taintedCall); //$NON-NLS-1$
         log.info("Calls tainted by unknown arguments " + this.taintedByMissingArgs); //$NON-NLS-1$
+        log.info("Calls tainted by limit reached " + this.methodLimitReached); //$NON-NLS-1$
         log.info("Implied calls " + this.impliedCalls); //$NON-NLS-1$
         log.info("Untainted calls " + this.untaintedCall); //$NON-NLS-1$
         log.info("Backward jumps " + this.backwardJumps); //$NON-NLS-1$

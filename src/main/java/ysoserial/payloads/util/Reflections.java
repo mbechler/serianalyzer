@@ -5,6 +5,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 
 
+@SuppressWarnings ( "all" )
 public class Reflections {
 
     public static Field getField ( final Class<?> clazz, final String fieldName ) throws Exception {

@@ -30,7 +30,7 @@ import sun.rmi.transport.tcp.TCPEndpoint;
  * @author mbechler
  *
  */
-@SuppressWarnings ( "restriction" )
+@SuppressWarnings ( "all" )
 public class OraclePOC {
 
     // A - create an insane amount of system threads

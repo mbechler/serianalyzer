@@ -161,7 +161,8 @@ public class MethodReference implements Serializable {
      */
     public void setTargetType ( Type targetType ) {
         this.cachedHashCode = null;
-        if ( targetType.getClassName().equals(this.typeName.toString()) ) {
+        if ( targetType == null || targetType.getClassName().equals(this.typeName.toString()) ) {
+            this.targetType = null;
             return;
         }
         this.targetType = targetType;
@@ -183,6 +184,7 @@ public class MethodReference implements Serializable {
     public void setArgumentTypes ( List<Type> argumentTypes ) {
         this.cachedHashCode = null;
         if ( argumentTypes == null || argumentTypes.isEmpty() ) {
+            this.argumentTypes = null;
             return;
         }
         Type[] sigTypes = Type.getArgumentTypes(this.signature);

@@ -6,6 +6,8 @@
  */
 package eu.agno3.tools.serianalyzer.tests;
 
+
+@SuppressWarnings ( "all" )
 public class TestClass {
 
     /**
@@ -15,4 +17,8 @@ public class TestClass {
         System.out.println("Called with " + foo); //$NON-NLS-1$
     }
 
+
+    public static void test () {
+
+    }
 }

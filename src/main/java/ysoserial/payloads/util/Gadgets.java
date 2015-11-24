@@ -24,7 +24,7 @@ import com.sun.org.apache.xml.internal.serializer.SerializationHandler;
 /*
  * utility generator functions for common jdk-only gadgets
  */
-@SuppressWarnings ( "restriction" )
+@SuppressWarnings ( "all" )
 public class Gadgets {
 
     private static final String ANN_INV_HANDLER_CLASS = "sun.reflect.annotation.AnnotationInvocationHandler";

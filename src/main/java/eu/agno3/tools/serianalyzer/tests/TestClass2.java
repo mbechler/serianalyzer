@@ -10,6 +10,7 @@ package eu.agno3.tools.serianalyzer.tests;
 import java.io.Serializable;
 
 
+@SuppressWarnings ( "all" )
 public class TestClass2 implements Serializable {
 
     private String test;

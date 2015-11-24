@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 
+@SuppressWarnings ( "all" )
 public class ClassFiles {
 
     public static String classAsFile ( final Class<?> clazz ) {

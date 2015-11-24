@@ -338,6 +338,20 @@ public class SerianalyzerState implements Serializable {
 
 
     /**
+     * @param methodReference
+     * @return number of known different argument types
+     */
+    public int countKnown ( MethodReference methodReference ) {
+        MethodReference cmp = methodReference.comparable();
+        Set<MethodReference> set = this.known.get(cmp);
+        if ( set == null ) {
+            return 0;
+        }
+        return set.size();
+    }
+
+
+    /**
      * @param toRemove
      * @return whether any change was made
      */

@@ -1,29 +1,39 @@
 # Serianalyzer
 
-Serianalyzer is a static bytecode analyzer tracing native method calls by methods called during deserialization.
+Serianalyzer is a static bytecode analyzer tracing native method calls made by methods called during deserialization.
 
 
 ## Correctness
 
 Correctness can only be assumed if the full classpath of the scanned application is used as input 
 as there very well may be interactions between classes from different libraries. 
-The basic scanning process should be able to identify any calls that can be potentially made. 
+The basic scanning process should be able to identify any calls that can be potentially made.
+ 
 Of course there may be bugs.
-
-There are other types of deserialization vulnerabilities that cannot be caught using this tool, i.e.:
-- "billion laughs" style DOS
-- further use of the untrusted input obtained for deserialization
-- unsafe method calls that do not depend on user input
 
 ## Limitations
 
+There are other types of deserialization vulnerabilities that cannot be caught using this tool, i.e.:
+
+* "billion laughs" style DOS
+* further use of the untrusted input obtained by deserialization
+* unsafe method calls that do not depend on user input
+* method calls that mutate global state, except for direct static puts.
+
+Well, a lot of false positives. If you find something it might very well be that the call is not reachable
+at all.
+
 If no more concrete type can be found for an object it must be assumed to be of the signature type. 
 This, in many cases, can be a very generic interface/base-class, like
+
 * Enumeration/Iterator
 * Runnable
 * Input-/OutputStream, PrintWriter, ...
+
 and therefor all extensor/implementors must be traced. This can be quite a lot of methods to trace
 and if no further filtering (see *Modes of Operation*) is applied lead to quite a number of false-positives.
+
+On big class paths this can take quite some time and memory.
 
 ## Usage
 
@@ -37,6 +47,8 @@ Usage: eu.agno3.tools.serianalyzer.Main [-w|--whitelist <whitelist>] [-i|-o <fil
 ```
 
 Giving -i and -o at the same time performs another filtering round using the whilelist.
+
+Don't forget to raise your java heap limit. 
 
 ## Modes of operation
 
@@ -52,14 +64,31 @@ Warning: The amount of call paths output per target call is limited for better o
 This means you should run the analysis (the filtering step should suffice) again after 
 whitelisting some cleared code paths.    
 
-## Known bugs
-* Type inference will occasionally pick the wrong interface if there are multiple, 
-  this leads to a incompatible type error and reverts to the signature type. 
+## Whitelist syntax
+
+The following entry types are handled:
+
+* **#** comment
+* **C** whitelist a call by its method signature
+* **N** whitelist a native call
+* **S** whitelist a call performing a static put operation
+* **U** untaint a method return value by the called method signature
+* **P** whitelist a package/class by prefix match on name
+
+Method signatures are of the format
+```
+java.lang.String::format [(Ljava/util/Locale;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;]
+java.lang.reflect.Method->copy [()Ljava/lang/reflect/Method;]
+```
    
 ## Potential improvements
+
 * It should be possible to do more precise whitelisting (i.e. method A calls method B)
   otherwise one might whitelist a method for one reason and overlook the other.
   Also the current default whitelist is too broad in some ways.
 * Deduplication of found paths (ideas welcome)
 * Implication of method calls based on the types in use (reducing the number of traced calls)
 * Handling of very simple branches (reducing the number of taints)
+
+## Known issues
+* ...

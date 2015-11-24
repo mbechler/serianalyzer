@@ -1,3 +1,7 @@
+# These are quite painful to analyze
+P java.awt.
+P javax.swing.
+
 N java.util.TimeZone::getSystemTimeZoneID [(Ljava/lang/String;)Ljava/lang/String;]
 N java.util.TimeZone::getSystemGMTOffsetID [()Ljava/lang/String;]
 
@@ -94,6 +98,9 @@ N java.lang.Thread::holdsLock [(Ljava/lang/Object;)Z]
 
 N java.net.NetworkInterface::getByName0 [(Ljava/lang/String;)Ljava/net/NetworkInterface;]
 
+N sun.net.dns.ResolverConfigurationImpl::localDomain0 [()Ljava/lang/String;]
+N sun.net.dns.ResolverConfigurationImpl::fallbackDomain0 [()Ljava/lang/String;]
+
 N sun.misc.MessageUtils::toStderr [(Ljava/lang/String;)V]
 N sun.reflect.Reflection::getCallerClass [()Ljava/lang/Class;]
 N sun.reflect.Reflection::getClassAccessFlags [(Ljava/lang/Class;)I]
@@ -109,16 +116,20 @@ N sun.misc.Unsafe->ensureClassInitialized [(Ljava/lang/Class;)V]
 N sun.misc.Unsafe->throwException [(Ljava/lang/Throwable;)V]
 N sun.misc.Unsafe->unpark [(Ljava/lang/Object;)V] T[T]
 N sun.misc.Unsafe->park [(ZJ)V] U[UT]
+N sun.misc.Unsafe->getBoolean [(Ljava/lang/Object;J)Z]
+N sun.misc.Unsafe->getBooleanVolatile [(Ljava/lang/Object;J)Z]
 N sun.misc.Unsafe->getByte [(J)B]
+N sun.misc.Unsafe->getByteVolatile [(Ljava/lang/Object;J)B]
 N sun.misc.Unsafe->getShort [(J)S]
 N sun.misc.Unsafe->getChar [(J)C] 
 N sun.misc.Unsafe->getFloat [(J)F]
 N sun.misc.Unsafe->getDouble [(J)D]
 N sun.misc.Unsafe->getInt [(J)I]
+N sun.misc.Unsafe->getInt [(Ljava/lang/Object;J)I]
 N sun.misc.Unsafe->getLong [(Ljava/lang/Object;J)J]
 N sun.misc.Unsafe->getLong [(J)J] U[T]
-N sun.misc.Unsafe->putShort [(Ljava/lang/Object;JS)V]
-N sun.misc.Unsafe->putShortVolatile [(Ljava/lang/Object;JS)V] 
+N sun.misc.Unsafe->getShort [(Ljava/lang/Object;J)S] 
+N sun.misc.Unsafe->getShortVolatile [(Ljava/lang/Object;J)S]
 N sun.misc.Unsafe->getLongVolatile [(Ljava/lang/Object;J)J]
 N sun.misc.Unsafe->getIntVolatile [(Ljava/lang/Object;J)I]
 
@@ -127,6 +138,8 @@ N sun.misc.Unsafe->putByte [(JB)V]
 N sun.misc.Unsafe->putBoolean [(Ljava/lang/Object;JZ)V]
 N sun.misc.Unsafe->putInt [(Ljava/lang/Object;JI)V]
 N sun.misc.Unsafe->putIntVolatile [(Ljava/lang/Object;JI)V]
+N sun.misc.Unsafe->putShort [(Ljava/lang/Object;JS)V]
+N sun.misc.Unsafe->putShortVolatile [(Ljava/lang/Object;JS)V]
 N sun.misc.Unsafe->putLong [(Ljava/lang/Object;JJ)V]
 N sun.misc.Unsafe->putLongVolatile [(Ljava/lang/Object;JJ)V]
 N sun.misc.Unsafe->putOrderedObject [(Ljava/lang/Object;JLjava/lang/Object;)V] 
@@ -184,7 +197,7 @@ S java.math.BigInteger::getRadixConversionCache [(II)Ljava/math/BigInteger;]
 S javax.swing.AbstractAction::shouldReconfigure [(Ljava/beans/PropertyChangeEvent;)Z]
 S java.lang.Class::getReflectionFactory [()Lsun/reflect/ReflectionFactory;]
 S java.lang.SecurityManager->checkPackageAccess [(Ljava/lang/String;)V]
-S sun.font.FontDesignMetrics::getDefaultFrc [()Ljava/awt/font/FontRenderContext;]
+S sun.font.FontDesignMetrics::getDefaultFrc [()Ljava/awt/font/FontRenderContext;] 
 S java.security.Provider->getService [(Ljava/lang/String;Ljava/lang/String;)Ljava/security/Provider$Service;]
 S org.eclipse.persistence.platform.database.OraclePlatform->getVPDClearIdentifierQuery [(Ljava/lang/String;)Lorg/eclipse/persistence/queries/DatabaseQuery;]
 S org.eclipse.persistence.platform.database.OraclePlatform->getVPDSetIdentifierQuery [(Ljava/lang/String;)Lorg/eclipse/persistence/queries/DatabaseQuery;]
@@ -200,6 +213,13 @@ S java.util.TimeZone::setDefaultZone [()Ljava/util/TimeZone;]
 S sun.security.pkcs11.P11ECKeyFactory::getSunECProvider [()Ljava/security/Provider;]
 C com.sun.deploy.config.Platform::get [()Lcom/sun/deploy/config/Platform;]
 S java.util.Locale::getDefault [(Ljava/util/Locale$Category;)Ljava/util/Locale;]
+S javax.swing.text.html.HTMLEditorKit->getParser [()Ljavax/swing/text/html/HTMLEditorKit$Parser;]
+S com.sun.java.swing.plaf.gtk.GTKLookAndFeel->initialize [()V]
+S java.awt.color.ICC_Profile::getInstance [(I)Ljava/awt/color/ICC_Profile;]
+S com.sun.java.swing.plaf.gtk.GTKLookAndFeel->loadStyles [()V] 
+S com.sun.corba.se.impl.orb.ORBImpl->getLocalHostName [()Ljava/lang/String;]
+S sun.net.dns.ResolverConfigurationImpl->loadConfig [()V]
+S java.math.BigDecimal::expandBigIntegerTenPowers [(I)Ljava/math/BigInteger;]
 
 S java.nio.Bits::reserveMemory [(JI)V]
 
@@ -221,26 +241,29 @@ C org.hibernate.property.access.spi.EnhancedGetterMethodImpl->get [(Ljava/lang/O
 
 # Write file to given directory with name upload_X_X.tmp with given contents
 # Delete arbitrary file (after making backup like above) 
+# This one is actually known for some time (relates CVE-2013-2186)
 C org.apache.commons.fileupload.disk.DiskFileItem->readObject [(Ljava/io/ObjectInputStream;)V]
 
 # The well known
 C org.apache.commons.collections4.functors.InvokerTransformer->transform [(Ljava/lang/Object;)Ljava/lang/Object;]
 C org.apache.commons.collections.functors.InvokerTransformer->transform [(Ljava/lang/Object;)Ljava/lang/Object;]
-C org.springframework.core.SerializableTypeWrapper$TypeProxyInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
-
-# This actually does not find the real issue in heuristic mode, only the object method invoke, not really sure why
-C org.codehaus.groovy.runtime.ConversionHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
-
 # Instantiates arbitrary classes, using arbitrary constructor
 C org.apache.commons.collections4.functors.InstantiateTransformer->transform [(Ljava/lang/Class;)Ljava/lang/Object;]
 C org.apache.commons.collections4.functors.InstantiateFactory->create [()Ljava/lang/Object;]
 C org.apache.commons.collections.functors.InstantiateTransformer->transform [(Ljava/lang/Object;)Ljava/lang/Object;] 
 C org.apache.commons.collections.functors.InstantiateFactory->create [()Ljava/lang/Object;]
 
+C org.springframework.core.SerializableTypeWrapper$TypeProxyInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+# This actually does not find the real issue in heuristic mode, as the instantiable checks fails on some classes
+C org.codehaus.groovy.runtime.ConversionHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+
+
+
 
 #
 # BAD
 #
+
 # Clones by serialization using default function
 C org.apache.commons.collections4.functors.PrototypeFactory$PrototypeSerializationFactory->create [()Ljava/io/Serializable;]
 C org.apache.commons.collections.functors.PrototypeFactory$PrototypeSerializationFactory->create [()Ljava/io/Serializable;]
@@ -257,6 +280,10 @@ S com.sun.org.apache.bcel.internal.generic.InstructionHandle->addHandle [()V]
 C org.springframework.util.AutoPopulatingList$ReflectiveElementFactory->createElement [(I)Ljava/lang/Object;] T[T]
 C org.apache.tools.ant.ComponentHelper$AntTypeTable->getTypeClass [(Ljava/lang/String;)Ljava/lang/Class;]
 C org.apache.commons.beanutils.LazyDynaList->setElementType [(Ljava/lang/Class;)V]
+
+# this can be used to mess with the caching
+S org.apache.log4j.helpers.AbsoluteTimeDateFormat->format [(Ljava/util/Date;Ljava/lang/StringBuffer;Ljava/text/FieldPosition;)Ljava/lang/StringBuffer;]
+S org.apache.log4j.helpers.ISO8601DateFormat->format [(Ljava/util/Date;Ljava/lang/StringBuffer;Ljava/text/FieldPosition;)Ljava/lang/StringBuffer;]
 
 #
 # DISPUTABLE
@@ -284,15 +311,22 @@ C org.apache.openjpa.lib.jdbc.DelegatingDataSource->setBeanProperty [(Ljava/lang
 # invoke org.apache.commons.math3.stat.descriptive.UnivariateStatistic.setQuantile
 C org.apache.commons.math3.stat.descriptive.DescriptiveStatistics->getPercentile [(D)D]
 
+
+# class load, static call to createUI, classes seem to be all fixed
+C javax.swing.UIDefaults->getUI [(Ljavax/swing/JComponent;)Ljavax/swing/plaf/ComponentUI;]
+
 # Eventually reads class file from pool
 C javassist.CtClass->toString [()Ljava/lang/String;]
 
+# invoke arbitrary method on java.lang.annotation.Annotation
+C org.hibernate.validator.internal.util.annotationfactory.AnnotationProxy->equals [(Ljava/lang/Object;)Z]
 
 # invokes deserialize(ObjectInputStream, PersistenceContext) on arbitrary class
 C org.hibernate.engine.internal.EntityEntryContext::deserializeEntityEntry [([CLjava/io/ObjectInputStream;Lorg/hibernate/engine/internal/StatefulPersistenceContext;)Lorg/hibernate/engine/spi/EntityEntry;]
  
 # launches predefined runnable
 C org.eclipse.persistence.internal.identitymaps.WeakIdentityMap->checkCleanup [()V]
+C jdk.nashorn.internal.ir.UnaryNode->toString [(Ljava/lang/StringBuilder;Z)V]
 
 # reads from database result
 C org.eclipse.persistence.internal.databaseaccess.DatabaseAccessor->getObject [(Ljava/sql/ResultSet;Lorg/eclipse/persistence/internal/helper/DatabaseField;Ljava/sql/ResultSetMetaData;ILorg/eclipse/persistence/internal/databaseaccess/DatabasePlatform;ZLorg/eclipse/persistence/internal/sessions/AbstractSession;)Ljava/lang/Object;]
@@ -405,6 +439,7 @@ C org.mozilla.javascript.NativeJavaObject->readObject [(Ljava/io/ObjectInputStre
 C sun.security.ssl.HandshakeMessage$CertificateVerify::digestKey [(Ljava/security/MessageDigest;Ljavax/crypto/SecretKey;)V]
 C com.sun.jndi.ldap.ClientId->invokeComparator [(Lcom/sun/jndi/ldap/ClientId;Lcom/sun/jndi/ldap/ClientId;)Z]
 C com.sun.java.util.jar.pack.PropMap$Beans::invokePropertyChange [(Ljava/lang/Object;Ljava/lang/Object;)V]
+C javax.swing.plaf.basic.LazyActionMap->loadIfNecessary [()V]
 
 # can be used only to call on itself
 C org.mozilla.javascript.ScriptableObject->getImpl [(Ljava/lang/String;ILorg/mozilla/javascript/Scriptable;)Ljava/lang/Object;]
@@ -483,6 +518,7 @@ C com.sun.xml.internal.ws.api.message.Packet->toString [()Ljava/lang/String;]
 C com.sun.xml.internal.ws.api.addressing.WSEndpointReference->toString [()Ljava/lang/String;]
 C com.sun.org.apache.xml.internal.security.signature.XMLSignatureInput->getBytes [()[B]
 C sun.misc.ProxyGenerator->generateClassFile [()[B]
+C org.codehaus.groovy.runtime.EncodingGroovyMethods$1->toString [()Ljava/lang/String;]
 
 # Instantiates from a fixed set of classes
 C sun.security.x509.OtherName->equals [(Ljava/lang/Object;)Z]
@@ -502,6 +538,7 @@ C javassist.bytecode.ConstInfo->toString [()Ljava/lang/String;]
 C freemarker.core.ParseException->isInJBossToolsMode [()Z] 
 # extensors of DynaClass
 C org.apache.commons.beanutils.BasicDynaClass->newInstance [()Lorg/apache/commons/beanutils/DynaBean;]
+C java.awt.Toolkit::loadAssistiveTechnologies [()V]
 
 # Callables are all predefined
 C jdk.nashorn.api.scripting.ScriptObjectMirror->inGlobal [(Ljava/util/concurrent/Callable;)Ljava/lang/Object;]
@@ -543,13 +580,15 @@ C java.util.logging.LogRecord->readObject [(Ljava/io/ObjectInputStream;)V]
 # only invokes methods invocable by another invocation handler
 C com.sun.corba.se.spi.orbutil.proxy.CompositeInvocationHandlerImpl->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
 
-# FP: toString
+# Calls toString
 C javax.management.BadAttributeValueExpException->readObject [(Ljava/io/ObjectInputStream;)V]
 
 # FP: outer class not serializable
 C net.sf.ehcache.store.LruMemoryStore$SpoolingLinkedHashMap->removeLeastRecentlyUsedElement [(Lnet/sf/ehcache/Element;)Z] T[T]
 
-
+# See no way to instantiate this from tainted values
+C sun.swing.SwingLazyValue->createValue [(Ljavax/swing/UIDefaults;)Ljava/lang/Object;]
+C com.sun.java.swing.plaf.gtk.GTKStyle$GTKLazyValue->createValue [(Ljavax/swing/UIDefaults;)Ljava/lang/Object;] 
 
 
 

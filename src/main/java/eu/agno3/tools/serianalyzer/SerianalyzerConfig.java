@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -38,12 +37,9 @@ public class SerianalyzerConfig {
     private final Set<MethodReference> untaintReturn = new HashSet<>();
     private final Set<MethodReference> staticPutWhiteList = new HashSet<>();
 
-    private final Set<String> ignorePkg = new HashSet<>(Arrays.asList(
-        "java.awt.",
-        "sun.awt.",
-        "javax.swing.",
-        "com.sun.java.swing.",
-        "jdk.nashorn.internal."));
+    private final Set<String> ignorePkg = new HashSet<>();
+
+    private Set<String> instantiationFix = new HashSet<>();
 
     private boolean dumpInstantiationInfo;
 
@@ -131,6 +127,9 @@ public class SerianalyzerConfig {
                 case 'P':
                     this.ignorePkg.add(line.substring(1).trim());
                     continue;
+                case 'I':
+                    this.instantiationFix.add(line.substring(1).trim());
+                    continue;
                 default:
                     log.warn("Unrecognized line " + line);
 
@@ -172,6 +171,20 @@ public class SerianalyzerConfig {
             return true;
         }
 
+        return false;
+    }
+
+
+    /**
+     * @param typeName
+     * @return whether to consider the type instantiatble
+     */
+    public boolean isConsiderInstantiable ( String typeName ) {
+        for ( String pkg : this.instantiationFix ) {
+            if ( typeName.startsWith(pkg) ) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -329,6 +342,14 @@ public class SerianalyzerConfig {
      */
     public boolean isFilterNonReachableInitializers () {
         return false;
+    }
+
+
+    /**
+     * @return the maximum number of individual argument type to check for each method
+     */
+    public int getMaxChecksPerReference () {
+        return 10;
     }
 
 }

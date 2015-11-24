@@ -18,16 +18,16 @@ import org.objectweb.asm.Type;
  */
 public class MultiAlternatives extends BaseType {
 
-    private Set<Object> alternatives;
+    private Set<BaseType> alternatives;
 
 
     /**
      * @param v
      */
-    public MultiAlternatives ( Set<Object> v ) {
+    public MultiAlternatives ( Set<BaseType> v ) {
         super(anyTainted(v), "alternatives [ " + v + " ]"); //$NON-NLS-1$ //$NON-NLS-2$
 
-        for ( Object alt : v ) {
+        for ( BaseType alt : v ) {
             if ( alt instanceof MultiAlternatives ) {
                 throw new IllegalArgumentException("Recursion"); //$NON-NLS-1$
             }
@@ -40,7 +40,7 @@ public class MultiAlternatives extends BaseType {
     /**
      * @return the alternatives
      */
-    public Set<Object> getAlternatives () {
+    public Set<BaseType> getAlternatives () {
         return this.alternatives;
     }
 
@@ -51,7 +51,11 @@ public class MultiAlternatives extends BaseType {
      */
     public Type getCommonType () {
         Type common = null;
-        for ( Object object : this.getAlternatives() ) {
+        for ( BaseType object : this.getAlternatives() ) {
+
+            if ( object == null ) {
+                return Type.VOID_TYPE;
+            }
 
             Type t = null;
             if ( object instanceof SimpleType ) {
@@ -75,14 +79,12 @@ public class MultiAlternatives extends BaseType {
      * @param v
      * @return
      */
-    private static boolean anyTainted ( Set<Object> v ) {
-        for ( Object o : v ) {
-            if ( o instanceof BaseType ) {
-                if ( ( (BaseType) o ).isTainted() ) {
-                    return true;
-                }
+    private static boolean anyTainted ( Set<BaseType> v ) {
+        for ( BaseType o : v ) {
+            if ( o == null ) {
+                return true;
             }
-            else {
+            if ( o.isTainted() ) {
                 return true;
             }
         }

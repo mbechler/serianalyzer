@@ -43,10 +43,14 @@ public class Serianalyzer {
 
     private static final Logger log = Logger.getLogger(Serianalyzer.class);
 
+    private static final long OUTPUT_EVERY = 10000;
+
     private SerianalyzerInput input;
     private SerianalyzerState state;
 
     private Map<String, Boolean> serializableCache = new HashMap<>();
+
+    private long lastOutput = 0;
 
 
     /**
@@ -79,6 +83,7 @@ public class Serianalyzer {
             save();
         }
         else {
+            this.lastOutput = System.currentTimeMillis();
             runAnalysis();
             save();
             log.info(String.format("Found a total %d method calls reachable", this.state.getTotalKnownCount())); //$NON-NLS-1$
@@ -101,8 +106,8 @@ public class Serianalyzer {
         Set<DotName> usedInstantiable = new HashSet<>();
         long nonWhitelist = dumpMethodCalls(dump, usedInstantiable, "Potentially unsafe native call "); //$NON-NLS-1$
         log.info(String.format("Found %d non-whitelisted native methods", nonWhitelist)); //$NON-NLS-1$
-        //long stPuts = dumpMethodCalls(this.state.getStaticPuts(), usedInstantiable, "Potentially unsafe static put in "); //$NON-NLS-1$
-        //log.info(String.format("Found %d potentially unsafe static puts", stPuts)); //$NON-NLS-1$
+        long stPuts = dumpMethodCalls(this.state.getStaticPuts(), usedInstantiable, "Potentially unsafe static put in "); //$NON-NLS-1$
+        log.info(String.format("Found %d potentially unsafe static puts", stPuts)); //$NON-NLS-1$
 
         if ( this.input.getConfig().isDumpInstantiationInfo() ) {
             dumpInstantiable(usedInstantiable);
@@ -224,13 +229,14 @@ public class Serianalyzer {
      */
     private boolean removeUninstantiable () {
         Set<String> toRemove = new HashSet<>();
+        Map<String, Boolean> recursionCache = new HashMap<>();
         for ( String typeName : this.state.getInstantiableTypes() ) {
 
-            if ( this.isTypeSerializable(this.getIndex(), typeName) ) {
+            if ( this.isTypeSerializable(this.getIndex(), typeName) || this.input.getConfig().isConsiderInstantiable(typeName) ) {
                 continue;
             }
 
-            if ( checkAllRecursive(typeName, this.state.getInitial()) ) {
+            if ( checkAllRecursive(typeName, new HashSet<>(), recursionCache) ) {
                 log.debug("All instantiations are recursive for " + typeName); //$NON-NLS-1$
                 toRemove.add(typeName);
             }
@@ -384,7 +390,7 @@ public class Serianalyzer {
      */
     private void traceInstantiation ( String prefix, DotName typeName, Set<MethodReference> found ) {
 
-        if ( checkAllRecursive(typeName.toString(), this.state.getInitial()) ) {
+        if ( checkAllRecursive(typeName.toString(), new HashSet<>(), new HashMap<>()) ) {
             log.warn("All instantiations are recursive for " + typeName); //$NON-NLS-1$
         }
 
@@ -434,28 +440,32 @@ public class Serianalyzer {
     /**
      * @param string
      */
-    private boolean checkAllRecursive ( String typeName, Set<MethodReference> targets ) {
+    private boolean checkAllRecursive ( String typeName, Set<String> visited, Map<String, Boolean> recursionCache ) {
         Set<MethodReference> i = this.state.getInstantiatedThrough().get(typeName);
         if ( i == null || i.isEmpty() ) {
             log.warn("Instantiated through is empty " + typeName); //$NON-NLS-1$
             return this.input.getConfig().isFilterNonReachableInitializers();
         }
 
-        Queue<MethodReference> toVisit = new LinkedList<>(i);
-        Set<MethodReference> visited = new HashSet<>();
-        visited.addAll(i);
+        if ( recursionCache.containsKey(typeName) ) {
+            return recursionCache.get(typeName);
+        }
+
+        if ( visited.contains(typeName) ) {
+            return true;
+        }
+
+        Queue<String> toVisit = new LinkedList<>(Collections.singleton(typeName));
+        visited.add(typeName);
         while ( !toVisit.isEmpty() ) {
-            MethodReference r = toVisit.poll();
+            String type = toVisit.poll();
 
-            if ( targets.contains(r) ) {
+            if ( this.isTypeSerializable(this.getIndex(), type) || this.input.getConfig().isConsiderInstantiable(type) ) {
+                recursionCache.put(typeName, false);
                 return false;
             }
 
-            if ( this.isTypeSerializable(this.getIndex(), r.getTypeNameString()) ) {
-                return false;
-            }
-
-            Set<MethodReference> set = this.state.getInstantiatedThrough().get(r.getTypeNameString());
+            Set<MethodReference> set = this.state.getInstantiatedThrough().get(type);
             if ( set != null && !set.isEmpty() ) {
                 for ( MethodReference ref : set ) {
                     Set<MethodReference> callers = this.state.getMethodCallers().get(ref.comparable());
@@ -465,44 +475,54 @@ public class Serianalyzer {
                     }
 
                     for ( MethodReference c : callers ) {
-                        if ( targets.contains(c) ) {
-                            return false;
-                        }
-                        if ( this.isTypeSerializable(this.getIndex(), c.getTypeNameString()) ) {
-                            return false;
+                        String cType = c.getTypeNameString();
+
+                        if ( visited.contains(cType) ) {
+                            continue;
                         }
 
-                        if ( this.state.isInstantiable(ref) ) {
-
-                        }
+                        Set<String> types = new HashSet<>();
 
                         if ( c.isStatic() ) {
                             Set<MethodReference> origCallers = new HashSet<>();
                             resolveNonStaticCallers(c, origCallers, new HashSet<>());
                             for ( MethodReference oc : origCallers ) {
-                                if ( !visited.contains(oc) ) {
-                                    toVisit.add(oc);
-                                    visited.add(oc);
-                                }
+                                types.add(oc.getTypeNameString());
+
                             }
                         }
                         else {
-                            if ( !visited.contains(c) ) {
-                                toVisit.add(c);
-                                visited.add(c);
+                            types.add(cType);
+                        }
+
+                        for ( String t : types ) {
+                            if ( this.isTypeSerializable(this.getIndex(), t) || this.input.getConfig().isConsiderInstantiable(t) ) {
+                                recursionCache.put(typeName, false);
+                                return false;
+                            }
+
+                            if ( this.state.getInstantiableTypes().contains(t) && checkAllRecursive(t, visited, recursionCache) ) {
+                                continue;
+                            }
+
+                            if ( !visited.contains(t) ) {
+                                toVisit.add(t);
+                                visited.add(t);
                             }
                         }
                     }
                 }
             }
-            else {
-                log.debug("No instantiations found for " + r.getTypeNameString()); //$NON-NLS-1$
+            else if ( log.isDebugEnabled() ) {
+                log.debug("No instantiations found for " + type); //$NON-NLS-1$
             }
         }
 
         if ( log.isDebugEnabled() ) {
             log.debug("Only recursive instantiations " + typeName); //$NON-NLS-1$
+            log.debug("Visited types " + visited); //$NON-NLS-1$
         }
+        recursionCache.put(typeName, true);
         return true;
 
     }
@@ -607,7 +627,9 @@ public class Serianalyzer {
             return false;
         }
 
-        if ( !s.isInterface() && ( s.isStatic() || this.isTypeSerializable(this.getIndex(), s.getTypeNameString()) || this.state.isInstantiable(s) ) ) {
+        if ( !s.isInterface()
+                && ( s.isStatic() || this.isTypeSerializable(this.getIndex(), s.getTypeNameString()) || this.state.isInstantiable(s) || this.input
+                        .getConfig().isConsiderInstantiable(s.getTypeNameString()) ) ) {
             return false;
         }
 
@@ -733,7 +755,14 @@ public class Serianalyzer {
 
         if ( "<init>".equals(methodReference.getMethod()) ) { //$NON-NLS-1$
             this.state.trackInstantiable(methodReference.getTypeNameString(), methodReference);
+        }
 
+        if ( methodReference.getArgumentTypes() != null && this.state.countKnown(comparable) > this.input.getConfig().getMaxChecksPerReference() ) {
+            // also drops the argument types
+            this.state.getBench().reachedMethodLimit();
+            Type tgtType = methodReference.getTargetType();
+            methodReference = methodReference.fullTaint();
+            methodReference.setTargetType(tgtType);
         }
 
         this.state.traceCalls(methodReference, cal);
@@ -761,6 +790,7 @@ public class Serianalyzer {
         for ( ClassInfo impl : impls ) {
             MethodReference e = methodReference.adaptToType(impl.name());
             TypeUtil.checkReferenceTyping(this.input.getIndex(), this.input.getConfig().isIgnoreNonFound(), e);
+
             this.state.traceCalls(e, cal);
             this.state.trackKnown(e);
             this.state.getToCheck().add(e);
@@ -838,6 +868,13 @@ public class Serianalyzer {
             log.trace(String.format("Checking reference %s", methodReference)); //$NON-NLS-1$
         }
 
+        long currentTimeMillis = System.currentTimeMillis();
+        if ( currentTimeMillis - this.lastOutput > OUTPUT_EVERY ) {
+            log.info("Currently to check " + this.getState().getToCheck().size()); //$NON-NLS-1$
+            log.info("Sample " + methodReference); //$NON-NLS-1$
+            this.lastOutput = currentTimeMillis;
+        }
+
         try ( InputStream data = this.input.getClassData(methodReference.getTypeNameString()) ) {
             if ( data == null ) {
                 log.error("No class data for " + methodReference.getTypeNameString()); //$NON-NLS-1$
@@ -857,7 +894,9 @@ public class Serianalyzer {
                 if ( superclass == null ) {
                     throw new SerianalyzerException("Superclass not found " + methodReference.getTypeName()); //$NON-NLS-1$
                 }
-                checkMethodCall(methodReference.adaptToType(superclass.name()), Collections.singleton(methodReference), true, false);
+
+                MethodReference superRef = methodReference.adaptToType(superclass.name());
+                checkMethodCall(superRef, Collections.singleton(methodReference), true, false);
             }
         }
         catch ( IOException e ) {
@@ -934,7 +973,7 @@ public class Serianalyzer {
         }
 
         Set<Type> implTypes = new HashSet<>();
-        boolean allFound = checkForReturnTypes(c, impls, implTypes);
+        boolean allFound = checkForReturnTypes(ref, impls, implTypes);
         if ( allFound && !implTypes.isEmpty() ) {
             if ( implTypes.size() == 1 ) {
                 Type t = implTypes.iterator().next();
@@ -965,6 +1004,11 @@ public class Serianalyzer {
      * @return
      */
     private boolean checkForReturnTypes ( MethodReference c, Collection<ClassInfo> impls, Set<Type> implTypes ) {
+
+        if ( c.getArgumentTypes() != null ) {
+            return false;
+        }
+
         boolean allFound = true;
         for ( ClassInfo impl : impls ) {
             boolean found = TypeUtil.implementsMethod(c, impl);

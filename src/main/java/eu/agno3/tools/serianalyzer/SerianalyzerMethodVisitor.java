@@ -461,6 +461,9 @@ public class SerianalyzerMethodVisitor extends MethodVisitor {
             boolean taintReturn = tainted;
             Type improvedReturnType = this.parent.getAnalyzer().getImprovedReturnType(r, fixedType, deserializedTarget);
             if ( improvedReturnType != null ) {
+                if ( this.log.isDebugEnabled() ) {
+                    this.log.debug("Method " + r + " has improved return type " + improvedReturnType); //$NON-NLS-1$ //$NON-NLS-2$
+                }
                 returnType = improvedReturnType;
             }
 
@@ -601,6 +604,14 @@ public class SerianalyzerMethodVisitor extends MethodVisitor {
     @Override
     public void visitTypeInsn ( int opcode, String type ) {
         JVMImpl.handleJVMTypeInsn(opcode, type, this.stack);
+
+        if ( opcode == Opcodes.NEW ) {
+            String className = type.replace('/', '.');
+            if ( this.log.isDebugEnabled() ) {
+                this.log.debug("Found instantiation " + className); //$NON-NLS-1$
+            }
+            this.parent.getAnalyzer().getState().trackInstantiable(className, this.ref);
+        }
         super.visitTypeInsn(opcode, type);
     }
 
@@ -672,16 +683,19 @@ public class SerianalyzerMethodVisitor extends MethodVisitor {
         }
 
         Type sigType = Type.getReturnType(this.ref.getSignature());
-        if ( !this.returnTypes.isEmpty() ) {
+        if ( !this.returnTypes.isEmpty() && this.ref.getArgumentTypes() == null ) {
 
             if ( this.returnTypes.size() == 1 ) {
                 Type t = this.returnTypes.iterator().next();
                 if ( !"Ljava/lang/Object;".equals(t.toString()) && !t.equals(sigType) ) { //$NON-NLS-1$
+                    if ( this.log.isDebugEnabled() ) {
+                        this.log.debug("Improving return type to " + t); //$NON-NLS-1$
+                    }
                     try {
                         this.parent.getAnalyzer().foundImprovedReturnType(this.ref, t, sigType);
                     }
                     catch ( SerianalyzerException e ) {
-                        this.log.error("Failed to determine target type", e); //$NON-NLS-1$
+                        this.log.error("Failed to determine return type", e); //$NON-NLS-1$
                         this.log.warn("Failing type " + t); //$NON-NLS-1$
                         this.log.warn("Signature type " + sigType); //$NON-NLS-1$
                         this.log.warn("For " + this.ref); //$NON-NLS-1$
