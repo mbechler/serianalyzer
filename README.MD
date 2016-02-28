@@ -1,7 +1,12 @@
 # Serianalyzer
 
+"Because of its inherent nature, Java serialization is best suited for use in non-hostile environments." -- Oracle
+
 Serianalyzer is a static bytecode analyzer tracing native method calls made by methods called during deserialization.
 
+The main purpose of this tool is as a research tool to audit code for dangerous behavior during deserialization.
+It is not really useful to determine whether you application is vulnerable or not. 
+If your application deserializes data crossing trust boundaries - you should assume it is. 
 
 ## Correctness
 
@@ -9,7 +14,7 @@ Correctness can only be assumed if the full classpath of the scanned application
 as there very well may be interactions between classes from different libraries. 
 The basic scanning process should be able to identify any calls that can be potentially made.
  
-Of course there may be bugs.
+Of course there may be bugs (there pretty sure are).
 
 ## Limitations
 
@@ -30,7 +35,7 @@ This, in many cases, can be a very generic interface/base-class, like
 * Runnable
 * Input-/OutputStream, PrintWriter, ...
 
-and therefor all extensor/implementors must be traced. This can be quite a lot of methods to trace
+and therefor all extensors/implementors must be traced. This can be quite a lot of methods to trace
 and if no further filtering (see *Modes of Operation*) is applied lead to quite a number of false-positives.
 
 On big class paths this can take quite some time and memory.
@@ -38,8 +43,8 @@ On big class paths this can take quite some time and memory.
 ## Usage
 
 ```
-Usage: eu.agno3.tools.serianalyzer.Main [-w|--whitelist <whitelist>] [-i|-o <file>] [-n] [-d] <jar file/directory...>
-    -w      Whitelist file
+Usage: serianalyzer.Main [-w|--whitelist <whitelist>] [-i|-o <file>] [-n] [-d] <jar file/directory...>
+    -w      Whitelist file, you can pass multiple by specifying multiple times or separating with a comma
     -n      Disable heuristics
     -d      Dump instantiation details
     -i      Read analyzed state
@@ -48,7 +53,7 @@ Usage: eu.agno3.tools.serianalyzer.Main [-w|--whitelist <whitelist>] [-i|-o <fil
 
 Giving -i and -o at the same time performs another filtering round using the whilelist.
 
-Don't forget to raise your java heap limit. 
+Don't forget to raise your java heap limit if scanning large classpaths. 
 
 ## Modes of operation
 
@@ -74,6 +79,7 @@ The following entry types are handled:
 * **S** whitelist a call performing a static put operation
 * **U** untaint a method return value by the called method signature
 * **P** whitelist a package/class by prefix match on name
+* **I** force all classes to instantiable inside that package/class prefix  
 
 Method signatures are of the format
 ```
@@ -87,7 +93,6 @@ java.lang.reflect.Method->copy [()Ljava/lang/reflect/Method;]
   otherwise one might whitelist a method for one reason and overlook the other.
   Also the current default whitelist is too broad in some ways.
 * Deduplication of found paths (ideas welcome)
-* Implication of method calls based on the types in use (reducing the number of traced calls)
 * Handling of very simple branches (reducing the number of taints)
 
 ## Known issues

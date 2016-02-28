@@ -1,0 +1,115 @@
+
+
+#
+# EXPLOITABLE
+#
+
+
+# Arbitrary object invoke
+C org.hibernate.property.access.spi.GetterMethodImpl->get [(Ljava/lang/Object;)Ljava/lang/Object;]
+C org.hibernate.property.access.spi.EnhancedGetterMethodImpl->get [(Ljava/lang/Object;)Ljava/lang/Object;]
+
+# Arbitrary getter invoke
+C org.hibernate.property.BasicPropertyAccessor$BasicGetter->get [(Ljava/lang/Object;)Ljava/lang/Object;]
+C org.apache.commons.beanutils.BeanComparator->compare [(Ljava/lang/Object;Ljava/lang/Object;)I]
+
+# Write file to given directory with name upload_X_X.tmp with given contents
+# Delete arbitrary file (after making backup like above) 
+# This one is actually known for some time (relates CVE-2013-2186)
+# arbitrary file write with fileupload < 1.3.1 (+ older Java)
+C org.apache.commons.fileupload.disk.DiskFileItem->readObject [(Ljava/io/ObjectInputStream;)V]
+
+# needs an active faces context, then equals dereferences a EL value expression
+C org.apache.myfaces.view.facelets.el.ValueExpressionMethodExpression->getMethodExpression [()Ljavax/el/MethodExpression;]
+
+# invoke bean getter/setter
+C groovy.lang.MetaBeanProperty->setProperty [(Ljava/lang/Object;Ljava/lang/Object;)V]
+C groovy.lang.MetaBeanProperty->getProperty [(Ljava/lang/Object;Ljava/lang/Object;)V]
+
+# The well known (original ysoserial)
+# Arbitrary calls, nice chaining capabilities 
+C org.apache.commons.collections4.functors.InvokerTransformer->transform [(Ljava/lang/Object;)Ljava/lang/Object;]
+C org.apache.commons.collections.functors.InvokerTransformer->transform [(Ljava/lang/Object;)Ljava/lang/Object;]
+# Instantiates arbitrary classes, using arbitrary constructor
+C org.apache.commons.collections4.functors.InstantiateTransformer->transform [(Ljava/lang/Class;)Ljava/lang/Object;]
+C org.apache.commons.collections4.functors.InstantiateFactory->create [()Ljava/lang/Object;]
+C org.apache.commons.collections.functors.InstantiateTransformer->transform [(Ljava/lang/Object;)Ljava/lang/Object;] 
+C org.apache.commons.collections.functors.InstantiateFactory->create [()Ljava/lang/Object;]
+
+C org.springframework.core.SerializableTypeWrapper$TypeProxyInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+C org.springframework.core.SerializableTypeWrapper$MethodInvokeTypeProvider->readObject [(Ljava/io/ObjectInputStream;)V]
+C org.springframework.core.SerializableTypeWrapper$MethodInvokeTypeProvider->getType [()Ljava/lang/reflect/Type;]
+
+# the direct invoke there is not the actual root cause for this, but it's the shortest path (or maybe there is still some bug, groovy calls are quite complex)
+C org.codehaus.groovy.runtime.ConversionHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+
+# Arbitrary method invocation (before 7u21)
+C sun.reflect.annotation.AnnotationInvocationHandler->equalsImpl [(Ljava/lang/Object;)Ljava/lang/Boolean;]
+
+
+
+# filter bypass
+
+# Creates system thread, opens connection to remote JMRP service
+C sun.rmi.transport.DGCClient$EndpointEntry-><init> [(Lsun/rmi/transport/Endpoint;)V]
+C sun.rmi.transport.DGCImpl_Stub->dirty [([Ljava/rmi/server/ObjID;JLjava/rmi/dgc/Lease;)Ljava/rmi/dgc/Lease;]
+C sun.rmi.transport.LiveRef::read [(Ljava/io/ObjectInput;Z)Lsun/rmi/transport/LiveRef;]
+# Starts a JRMP listener
+C java.rmi.server.UnicastRemoteObject->reexport [()V]
+
+# Resolve arbitrary JNDI object
+#C com.mchange.v2.naming.ReferenceIndirector$ReferenceSerialized->getObject [()Ljava/lang/Object;]
+
+# Lookup arbitrary (?) JNDI object 
+#C com.atomikos.icatch.jta.RemoteClientUserTransaction->checkSetup [()Z]
+#C com.atomikos.icatch.jta.RemoteClientUserTransaction->toString [()Ljava/lang/String;]
+# needs getter, cannot set context properties
+C com.sun.rowset.JdbcRowSetImpl->connect [()Ljava/sql/Connection;]
+
+#
+# BAD
+#
+
+
+# open JMS connection if static connection factory is set
+C org.apache.activemq.web.WebClient->readExternal [(Ljava/io/ObjectInput;)V] 
+
+# Clones by serialization using default function
+C org.apache.commons.collections4.functors.PrototypeFactory$PrototypeSerializationFactory->create [()Ljava/io/Serializable;]
+C org.apache.commons.collections.functors.PrototypeFactory$PrototypeSerializationFactory->create [()Ljava/lang/Object;]
+
+# Gets you a proxied entity manager instance
+C org.springframework.orm.jpa.SharedEntityManagerCreator$SharedEntityManagerInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+
+# this is totally not thread-safe, but the impact seems to be marginal
+S com.sun.org.apache.bcel.internal.classfile.Utility::signatureToString [(Ljava/lang/String;Z)Ljava/lang/String;]
+S com.sun.org.apache.bcel.internal.generic.BranchHandle->addHandle [()V]
+S com.sun.org.apache.bcel.internal.generic.InstructionHandle->addHandle [()V]
+S com.sun.org.apache.bcel.internal.generic.Type::getType [(Ljava/lang/String;)Lcom/sun/org/apache/bcel/internal/generic/Type;]
+S sun.awt.FontConfiguration::getStringID [(Ljava/lang/String;)S]
+S org.apache.openjpa.kernel.BrokerImpl$StateManagerId::newInstance [(Lorg/apache/openjpa/kernel/Broker;)Lorg/apache/openjpa/kernel/BrokerImpl$StateManagerId;] 
+
+# instantiate arbitrary classes via default constructor
+C org.springframework.util.AutoPopulatingList$ReflectiveElementFactory->createElement [(I)Ljava/lang/Object;]
+C org.apache.tools.ant.ComponentHelper$AntTypeTable->getTypeClass [(Ljava/lang/String;)Ljava/lang/Class;]
+C org.apache.commons.beanutils.LazyDynaList->setElementType [(Ljava/lang/Class;)V]
+C org.apache.commons.beanutils.LazyDynaList->transform [(Ljava/lang/Object;)Lorg/apache/commons/beanutils/DynaBean;]
+C org.hibernate.tuple.PojoInstantiator->instantiate [()Ljava/lang/Object;]
+C org.hibernate.type.TypeFactory->customCollection [(Ljava/lang/String;Ljava/util/Properties;Ljava/lang/String;Ljava/lang/String;)Lorg/hibernate/type/CollectionType;]
+# needs a getter invocation
+C javax.naming.spi.NamingManager::getInitialContext [(Ljava/util/Hashtable;)Ljavax/naming/Context;]
+
+# this might be used to mess with the caching
+S org.apache.log4j.helpers.AbsoluteTimeDateFormat->format [(Ljava/util/Date;Ljava/lang/StringBuffer;Ljava/text/FieldPosition;)Ljava/lang/StringBuffer;]
+S org.apache.log4j.helpers.ISO8601DateFormat->format [(Ljava/util/Date;Ljava/lang/StringBuffer;Ljava/text/FieldPosition;)Ljava/lang/StringBuffer;]
+
+
+# GZIP input, XML parsing 
+C org.eclipse.persistence.sdo.SDOResolvable->readExternal [(Ljava/io/ObjectInput;)V] 
+
+
+# through zero arg method
+# exit VM
+com.sun.corba.se.impl.activation.ServerCallback->shutdown [()V]
+
+ 

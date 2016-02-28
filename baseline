@@ -1,0 +1,342 @@
+# TEMP: These are quite painful to analyze, and most of them should not be in server VMs
+P java.awt.
+P javax.swing.
+P com.sun.javaws.
+P sun.applet.
+P sun.plugin.
+P sun.plugin2.
+P sun.swing.
+P sun.awt.
+P jdk.nashorn.
+P com.sun.deploy.
+P sun.security.tools.policytool.
+
+
+#
+# BASELINE
+#
+
+N java.util.TimeZone::getSystemTimeZoneID [(Ljava/lang/String;)Ljava/lang/String;]
+N java.util.TimeZone::getSystemGMTOffsetID [()Ljava/lang/String;]
+
+N java.io.ObjectInputStream::bytesToFloats [([BI[FII)V]
+N java.io.ObjectInputStream::bytesToDoubles [([BI[DII)V]
+N java.io.ObjectOutputStream::floatsToBytes [([FI[BII)V]
+N java.io.ObjectOutputStream::doublesToBytes [([DI[BII)V]
+N java.io.ObjectStreamClass::hasStaticInitializer [(Ljava/lang/Class;)Z]
+N java.io.ObjectStreamClass::initNative [()V]
+C java.io.ObjectOutputStream->writeObject [(Ljava/lang/Object;)V]
+C java.io.ObjectOutputStream$BlockDataOutputStream->flush [()V]
+C java.io.ObjectOutputStream$BlockDataOutputStream->writeShort [(I)V]
+
+# these might get tainted some times
+C java.io.ObjectInputStream->resolveClass [(Ljava/io/ObjectStreamClass;)Ljava/lang/Class;]
+C java.io.ObjectInputStream->readClassDesc [(Z)Ljava/io/ObjectStreamClass;]
+# this is (hopefully) is the original ObjectInputStreams's input stream 
+C java.io.ObjectInputStream$PeekInputStream->read [([BII)I]
+C java.io.ObjectInputStream$PeekInputStream->read [()I]
+C java.io.ObjectInputStream$PeekInputStream->available [()I]
+C java.io.ObjectInputStream$PeekInputStream->peek [()I] 
+C java.io.ObjectInputStream$PeekInputStream->readFully [([BII)V]
+C java.io.ObjectInputStream$BlockDataInputStream->readBooleans [([ZII)V]
+C java.io.ObjectInputStream$BlockDataInputStream->readChars [([CII)V]
+C java.io.ObjectInputStream$BlockDataInputStream->readLongs [([JII)V]
+C java.io.ObjectInputStream$BlockDataInputStream->readDoubles [([DII)V]
+C java.io.ObjectInputStream$BlockDataInputStream->readLong [()J]
+C java.io.ObjectInputStream$BlockDataInputStream->readInt [()I]
+C java.io.ObjectInputStream$BlockDataInputStream->readInts [([III)V]
+C java.io.ObjectInputStream$BlockDataInputStream->readFloat [()F]
+C java.io.ObjectInputStream$BlockDataInputStream->readFloats [([FII)V]
+C java.io.ObjectInputStream$BlockDataInputStream->readUnsignedShort [()I]
+C java.io.ObjectInputStream$BlockDataInputStream->readShorts [([SII)V]
+C java.io.ObjectStreamClass->invokeReadResolve [(Ljava/lang/Object;)Ljava/lang/Object;]
+C java.io.ObjectStreamClass->invokeReadObject [(Ljava/lang/Object;)Ljava/lang/Object;]
+C java.io.ObjectStreamClass->invokeReadObjectNoData [(Ljava/lang/Object;)V]
+C java.io.ObjectStreamClass->invokeWriteReplace [(Ljava/lang/Object;)Ljava/lang/Object;]
+C java.io.ObjectStreamClass$EntryFuture->get [()Ljava/lang/Object;]
+C java.io.ObjectStreamClass::lookup [(Ljava/lang/Class;Z)Ljava/io/ObjectStreamClass;]
+C java.io.ObjectStreamClass->newInstance [()Ljava/lang/Object;]
+C java.io.ObjectInputStream::auditSubclass [(Ljava/lang/Class;)Z]
+
+N java.lang.Class->getComponentType [()Ljava/lang/Class;]
+N java.lang.Class->getEnclosingMethod0 [()[Ljava/lang/Object;]
+N java.lang.Class->isArray [()Z]
+N java.lang.Class->isPrimitive [()Z]
+N java.lang.Class->isInterface [()Z]
+N java.lang.Class->isEnum [()Z]
+N java.lang.Class->isInterface [()Z]
+N java.lang.Class->isAssignableFrom [(Ljava/lang/Class;)Z]
+N java.lang.Class->isInstance [(Ljava/lang/Object;)Z]
+N java.lang.Class->getModifiers [()I]
+N java.lang.Class->getSuperclass [()Ljava/lang/Class;]
+N java.lang.Class->getName0 [()Ljava/lang/String;]
+N java.lang.Class->getCanonicalName [()Ljava/lang/String;]
+N java.lang.Class->getDeclaringClass0 [()Ljava/lang/Class;]
+N java.lang.Class->getDeclaredClasses0 [()[Ljava/lang/Class;]
+N java.lang.Class->getDeclaredMethods0 [()Ljava/lang/Class;]
+N java.lang.Class->getInterfaces0 [()[Ljava/lang/Class;]
+N java.lang.Class->getDeclaredMethods0 [(Z)[Ljava/lang/reflect/Method;]
+N java.lang.Class->getDeclaredFields0 [(Z)[Ljava/lang/reflect/Field;]
+C java.lang.Class->getDeclaredField [(Ljava/lang/String;)Ljava/lang/reflect/Field;]
+C java.lang.Class->getFields [()[Ljava/lang/reflect/Field;] 
+N java.lang.Class->getDeclaredConstructors0 [(Z)[Ljava/lang/reflect/Constructor;]
+C java.lang.Class->getConstructor0 [([Ljava/lang/Class;I)Ljava/lang/reflect/Constructor;]
+C java.lang.Class->getGenericInterfaces [()[Ljava/lang/reflect/Type;]
+N java.lang.Class->getSigners [()[Ljava/lang/Object;]
+N java.lang.Class->getConstantPool [()Lsun/reflect/ConstantPool;]
+N java.lang.Class->getGenericSignature0 [()Ljava/lang/String;]
+N java.lang.Class->getRawAnnotations [()[B]
+N java.lang.Class::desiredAssertionStatus0 [(Ljava/lang/Class;)Z]
+N java.lang.Class::getPrimitiveClass [(Ljava/lang/String;)Ljava/lang/Class;]
+N java.lang.Class::registerNatives [()V]
+C java.lang.Class::checkInitted [()V]
+C java.lang.Class::copyFields [([Ljava/lang/reflect/Field;)[Ljava/lang/reflect/Field;]
+C java.lang.Class->getEnumConstantsShared [()[Ljava/lang/Object;]
+C java.lang.Class->annotationData [()Ljava/lang/Class$AnnotationData;]
+C java.lang.Class->getPackage [()Ljava/lang/Package;]
+C java.lang.Class->getProtectionDomain [()Ljava/security/ProtectionDomain;]
+C java.lang.Class->getGenericSuperclass [()Ljava/lang/reflect/Type;]
+C java.lang.Class->getEnclosingMethod [()Ljava/lang/reflect/Method;]
+C java.lang.Class->getAnnotatedSuperclass [()Ljava/lang/reflect/AnnotatedType;]
+C java.lang.Class->getAnnotatedInterfaces [()[Ljava/lang/reflect/AnnotatedType;] 
+C java.lang.Class->getEnclosingConstructor [()Ljava/lang/reflect/Constructor;]
+C java.lang.reflect.Parameter->getParameterizedType [()Ljava/lang/reflect/Type;]
+C java.lang.reflect.Method->getGenericReturnType [()Ljava/lang/reflect/Type;]
+C sun.reflect.generics.reflectiveObjects.WildcardTypeImpl->getLowerBounds [()[Ljava/lang/reflect/Type;]
+C sun.reflect.generics.reflectiveObjects.WildcardTypeImpl->getUpperBounds [()[Ljava/lang/reflect/Type;]
+
+N java.lang.reflect.Array::setBoolean [(Ljava/lang/Object;IZ)V]
+N java.lang.reflect.Array::setByte [(Ljava/lang/Object;IB)V]
+N java.lang.reflect.Array::setDouble [(Ljava/lang/Object;ID)V]
+N java.lang.reflect.Array::setFloat [(Ljava/lang/Object;IF)V]
+N java.lang.reflect.Array::setInt [(Ljava/lang/Object;II)V]
+N java.lang.reflect.Array::setLong [(Ljava/lang/Object;IJ)V]
+N java.lang.reflect.Array::setShort [(Ljava/lang/Object;IS)V]
+
+
+N java.lang.ClassLoader->findBootstrapClass [(Ljava/lang/String;)Ljava/lang/Class;]
+N java.lang.ClassLoader->findLoadedClass0 [(Ljava/lang/String;)Ljava/lang/Class;]
+
+
+C java.lang.reflect.Field->declaredAnnotations [()Ljava/util/Map;]
+C java.lang.reflect.Method->getDefaultValue [()Ljava/lang/Object;]
+
+N java.lang.Throwable->getStackTraceElement [(I)Ljava/lang/StackTraceElement;]
+N java.lang.Throwable->getStackTraceDepth [()I]
+N java.lang.Throwable->fillInStackTrace [(I)Ljava/lang/Throwable;]
+N java.lang.Throwable->longBitsToDouble [(J)D]
+N java.lang.Throwable->doubleToRawLongBits [(D)J]
+N java.lang.Throwable->floatToRawIntBits [(F)I]
+N java.lang.Throwable->intBitsToFloat [(I)F]
+
+N java.lang.String->intern [()Ljava/lang/String;]
+C java.lang.String::format [(Ljava/util/Locale;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;]
+
+N java.lang.Double::doubleToRawLongBits [(D)J]
+N java.lang.Double::longBitsToDouble [(J)D]
+N java.lang.Float::floatToRawIntBits [(F)I]
+N java.lang.Float::intBitsToFloat [(I)F]
+
+N java.lang.StrictMath::log [(D)D]
+N java.lang.StrictMath::IEEEremainder [(DD)D]
+N java.lang.StrictMath::pow [(DD)D]
+N java.lang.StrictMath::atan [(D)D]
+N java.lang.StrictMath::acos [(D)D]
+N java.lang.StrictMath::asin [(D)D]
+N java.lang.StrictMath::atan2 [(DD)D]
+N java.lang.StrictMath::sin [(D)D]
+N java.lang.StrictMath::cos [(D)D]
+N java.lang.StrictMath::tan [(D)D] 
+N java.lang.StrictMath::exp [(D)D]
+N java.lang.StrictMath::sqrt [(D)D]
+N java.lang.StrictMath::log10 [(D)D]
+
+N java.lang.System::arraycopy [(Ljava/lang/Object;ILjava/lang/Object;II)V]
+N java.lang.System::currentTimeMillis [()J]
+N java.lang.System::identityHashCode [(Ljava/lang/Object;)I]
+N java.lang.System::nanoTime [()J]
+
+N java.lang.Runtime->maxMemory [()J]
+N java.lang.Runtime->availableProcessors [()I]
+
+N java.lang.Thread::currentThread [()Ljava/lang/Thread;]
+N java.lang.Thread->isInterrupted [(Z)Z]
+N java.lang.Thread->isAlive [()Z]
+N java.lang.Thread::yield [()V]
+
+N java.lang.Object->hashCode [()I]
+N java.lang.Object->clone [()Ljava/lang/Object;]
+N java.lang.Object->getClass [()Ljava/lang/Class;]
+N java.lang.Object->notifyAll [()V]
+N java.lang.Object->notify [()V]
+N java.lang.Object->wait [(J)V]
+
+N java.nio.Bits::copyToShortArray [(JLjava/lang/Object;JJ)V]
+N java.nio.Bits::copyFromShortArray [(Ljava/lang/Object;JJJ)V]
+
+N java.lang.reflect.Array::get [(Ljava/lang/Object;I)Ljava/lang/Object;]
+N java.lang.reflect.Array::getLength [(Ljava/lang/Object;)I]
+N java.lang.reflect.Array::multiNewArray [(Ljava/lang/Class;[I)Ljava/lang/Object;]
+N java.lang.reflect.Array::newArray [(Ljava/lang/Class;I)Ljava/lang/Object;]
+N java.lang.reflect.Array::set [(Ljava/lang/Object;ILjava/lang/Object;)V]
+
+N java.lang.reflect.Executable->getParameters0 [()[Ljava/lang/reflect/Parameter;]
+C java.lang.reflect.Executable->declaredAnnotations [()Ljava/util/Map;]
+
+N java.lang.Thread::holdsLock [(Ljava/lang/Object;)Z]
+N java.util.concurrent.atomic.AtomicLong::VMSupportsCS8 [()Z]
+
+N java.net.NetworkInterface::getByName0 [(Ljava/lang/String;)Ljava/net/NetworkInterface;]
+N java.net.Inet4Address::init [()V]
+N java.net.Inet6Address::init [()V]
+N java.net.InetAddress::init [()V]
+N java.net.InetAddressImplFactory::isIPv6Supported [()Z]
+
+N sun.net.dns.ResolverConfigurationImpl::localDomain0 [()Ljava/lang/String;]
+N sun.net.dns.ResolverConfigurationImpl::fallbackDomain0 [()Ljava/lang/String;]
+C sun.net.dns.ResolverConfigurationImpl->searchlist [()Ljava/util/List;]
+C sun.net.dns.ResolverConfigurationImpl->nameservers [()Ljava/util/List;]
+
+N sun.misc.MessageUtils::toStderr [(Ljava/lang/String;)V]
+N sun.reflect.Reflection::getCallerClass [()Ljava/lang/Class;]
+N sun.reflect.Reflection::getClassAccessFlags [(Ljava/lang/Class;)I]
+N sun.nio.fs.UnixNativeDispatcher::strerror [(I)[B]
+C sun.reflect.MethodAccessorGenerator$1->run [()Lsun/reflect/MagicAccessorImpl;]
+
+N sun.reflect.Reflection::getCallerClass [(I)Ljava/lang/Class;]
+
+N java.security.AccessController::getStackAccessControlContext [()Ljava/security/AccessControlContext;]
+N java.security.AccessController::getInheritedAccessControlContext [()Ljava/security/AccessControlContext;] 
+
+C java.lang.ClassLoader::getSystemClassLoader [()Ljava/lang/ClassLoader;]
+
+
+# "Safe" unsafe methods, would be better to whitelist the callers but not right now
+N sun.misc.Unsafe->pageSize [()I]
+N sun.misc.Unsafe->compareAndSwapInt [(Ljava/lang/Object;JII)Z]
+N sun.misc.Unsafe->compareAndSwapLong [(Ljava/lang/Object;JJJ)Z]
+N sun.misc.Unsafe->compareAndSwapObject [(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z]
+N sun.misc.Unsafe->copyMemory [(Ljava/lang/Object;JLjava/lang/Object;JJ)V]
+N sun.misc.Unsafe->allocateInstance [(Ljava/lang/Class;)Ljava/lang/Object;]
+N sun.misc.Unsafe->ensureClassInitialized [(Ljava/lang/Class;)V]
+N sun.misc.Unsafe->objectFieldOffset [(Ljava/lang/reflect/Field;)J]
+N sun.misc.Unsafe->throwException [(Ljava/lang/Throwable;)V]
+N sun.misc.Unsafe->unpark [(Ljava/lang/Object;)V] T[T]
+N sun.misc.Unsafe->park [(ZJ)V] U[UT]
+N sun.misc.Unsafe->getBoolean [(Ljava/lang/Object;J)Z]
+N sun.misc.Unsafe->getBooleanVolatile [(Ljava/lang/Object;J)Z]
+N sun.misc.Unsafe->getByte [(Ljava/lang/Object;J)B] 
+N sun.misc.Unsafe->getByte [(J)B]
+N sun.misc.Unsafe->getByteVolatile [(Ljava/lang/Object;J)B]
+N sun.misc.Unsafe->getShort [(J)S]
+N sun.misc.Unsafe->getChar [(J)C] 
+N sun.misc.Unsafe->getChar [(Ljava/lang/Object;J)C]
+N sun.misc.Unsafe->getCharVolatile [(Ljava/lang/Object;J)C]
+N sun.misc.Unsafe->getFloat [(J)F]
+N sun.misc.Unsafe->getFloat [(Ljava/lang/Object;J)F]
+N sun.misc.Unsafe->getFloatVolatile [(Ljava/lang/Object;J)F]
+N sun.misc.Unsafe->getDouble [(J)D]
+N sun.misc.Unsafe->getDouble [(Ljava/lang/Object;J)D]
+N sun.misc.Unsafe->getDoubleVolatile [(Ljava/lang/Object;J)D]
+N sun.misc.Unsafe->getInt [(J)I]
+N sun.misc.Unsafe->getInt [(Ljava/lang/Object;J)I]
+N sun.misc.Unsafe->getLong [(Ljava/lang/Object;J)J]
+N sun.misc.Unsafe->getLong [(J)J] U[T]
+N sun.misc.Unsafe->getShort [(Ljava/lang/Object;J)S] 
+N sun.misc.Unsafe->getShortVolatile [(Ljava/lang/Object;J)S]
+N sun.misc.Unsafe->getLongVolatile [(Ljava/lang/Object;J)J]
+N sun.misc.Unsafe->getIntVolatile [(Ljava/lang/Object;J)I]
+N sun.misc.Unsafe->getObject [(Ljava/lang/Object;J)Ljava/lang/Object;]
+
+N sun.misc.Unsafe->arrayBaseOffset [(Ljava/lang/Class;)I] 
+N sun.misc.Unsafe->arrayIndexScale [(Ljava/lang/Class;)I] 
+
+# The put whitelist should be better applied conditionally
+N sun.misc.Unsafe->putByte [(JB)V]
+N sun.misc.Unsafe->putBoolean [(Ljava/lang/Object;JZ)V]
+N sun.misc.Unsafe->putInt [(Ljava/lang/Object;JI)V]
+N sun.misc.Unsafe->putInt [(JI)V]
+N sun.misc.Unsafe->putOrderedInt [(Ljava/lang/Object;JI)V]
+N sun.misc.Unsafe->putIntVolatile [(Ljava/lang/Object;JI)V]
+N sun.misc.Unsafe->putShort [(Ljava/lang/Object;JS)V]
+N sun.misc.Unsafe->putShort [(JS)V]
+N sun.misc.Unsafe->putShortVolatile [(Ljava/lang/Object;JS)V]
+N sun.misc.Unsafe->putLong [(Ljava/lang/Object;JJ)V]
+N sun.misc.Unsafe->putLong [(JJ)V]
+N sun.misc.Unsafe->putLongVolatile [(Ljava/lang/Object;JJ)V]
+N sun.misc.Unsafe->putOrderedObject [(Ljava/lang/Object;JLjava/lang/Object;)V] 
+N sun.misc.Unsafe->getObjectVolatile [(Ljava/lang/Object;J)Ljava/lang/Object;]
+N sun.misc.Unsafe->putObject [(Ljava/lang/Object;JLjava/lang/Object;)V] 
+N sun.misc.Unsafe->putObjectVolatile [(Ljava/lang/Object;JLjava/lang/Object;)V]
+N sun.misc.Unsafe->putFloatVolatile [(Ljava/lang/Object;JF)V]
+N sun.misc.Unsafe->putBooleanVolatile [(Ljava/lang/Object;JZ)V] 
+N sun.misc.Unsafe->putByte [(Ljava/lang/Object;JB)V]
+N sun.misc.Unsafe->putByteVolatile [(Ljava/lang/Object;JB)V]
+N sun.misc.Unsafe->putChar [(JC)V]
+N sun.misc.Unsafe->putChar [(Ljava/lang/Object;JC)V]
+N sun.misc.Unsafe->putCharVolatile [(Ljava/lang/Object;JC)V]
+N sun.misc.Unsafe->putDouble [(Ljava/lang/Object;JD)V]
+N sun.misc.Unsafe->putDoubleVolatile [(Ljava/lang/Object;JD)V]
+N sun.misc.Unsafe->putFloat [(Ljava/lang/Object;JF)V]
+N sun.misc.Unsafe->putFloat [(JF)V] 
+N sun.misc.Unsafe->putFloatVolatile [(Ljava/lang/Object;JF)V]
+N sun.misc.Unsafe->putShort [(Ljava/lang/Object;JS)V]
+N sun.misc.Unsafe->putShortVolatile [(Ljava/lang/Object;JS)V]
+# This might be an issue if used wildly
+C java.lang.reflect.Field->get [(Ljava/lang/Object;)Ljava/lang/Object;] 
+
+C java.nio.DirectByteBuffer-><init> [(I)V]
+
+
+N sun.reflect.ConstantPool->getUTF8At0 [(Ljava/lang/Object;I)Ljava/lang/String;]
+N sun.reflect.ConstantPool->getLongAt0 [(Ljava/lang/Object;I)J]
+N sun.reflect.ConstantPool->getIntAt0 [(Ljava/lang/Object;I)I]
+N sun.reflect.ConstantPool->getFloatAt0 [(Ljava/lang/Object;I)F]
+N sun.reflect.ConstantPool->getDoubleAt0 [(Ljava/lang/Object;I)D]
+N sun.reflect.ConstantPool->getClassAt0 [(Ljava/lang/Object;I)Ljava/lang/Class;]
+
+
+N sun.font.NativeFont->countGlyphs [([BI)I]
+N sun.font.NativeFont->getGlyphAdvance [(JI)F]
+N sun.font.NativeFont->getGlyphImageNoDefault [(JI)J]
+N sun.font.NativeFont::haveBitmapFonts [([B)Z]
+N sun.font.NativeStrike->createNullScalerContext [()J]
+N sun.font.NativeStrike->createScalerContext [([BID)J] 
+N sun.font.NullFontScaler::getNullScalerContext [()J]
+N sun.font.StrikeCache::freeIntPointer [(I)V]
+N sun.font.StrikeCache::freeLongPointer [(J)V]
+N sun.font.FileFontStrike->_getGlyphImageFromWindows [(Ljava/lang/String;IIIZ)J]
+
+C java.util.concurrent.ThreadLocalRandom::initialSeed [()J]
+C java.util.concurrent.ThreadLocalRandom::current [()Ljava/util/concurrent/ThreadLocalRandom;]
+C java.util.concurrent.ThreadLocalRandom::nextSecondarySeed [()I] 
+C java.util.concurrent.ThreadLocalRandom::getProbe [()I]
+
+# clones TimeZone, type not detected, privileged
+C java.util.Calendar->clone [()Ljava/lang/Object;] 
+C java.util.Calendar->readObject [(Ljava/io/ObjectInputStream;)V]
+C java.time.Ser::readInternal [(BLjava/io/ObjectInput;)Ljava/lang/Object;]
+C java.time.zone.Ser::readInternal [(BLjava/io/DataInput;)Ljava/lang/Object;]
+C java.time.chrono.Ser::readInternal [(BLjava/io/ObjectInput;)Ljava/lang/Object;]
+
+#
+C java.lang.invoke.MemberName->getMethodType [()Ljava/lang/invoke/MethodType;]
+C java.lang.invoke.MemberName->getName [()Ljava/lang/String;] 
+C java.lang.invoke.MemberName->getFieldType [()Ljava/lang/Class;]
+
+
+S java.nio.Bits::reserveMemory [(JI)V]
+S java.nio.Bits::unreserveMemory [(JI)V]
+S java.nio.Bits::pageSize [()I] 
+
+N com.sun.jna.Native::getLastError [()I]
+
+# File operations we consider okay
+C java.io.File->isDirectory [()Z] 
+C java.io.File->getCanonicalPath [()Ljava/lang/String;]
+C java.io.File->getTotalSpace [()J]
+C java.io.File->getFreeSpace [()J]
+C java.io.File->getUsableSpace [()J]
+C sun.nio.fs.UnixFileAttributes::get [(Lsun/nio/fs/UnixPath;Z)Lsun/nio/fs/UnixFileAttributes;]
+C sun.nio.fs.UnixPath->toRealPath [([Ljava/nio/file/LinkOption;)Ljava/nio/file/Path;]
+N sun.nio.ch.FileDispatcherImpl::size0 [(Ljava/io/FileDescriptor;)J]

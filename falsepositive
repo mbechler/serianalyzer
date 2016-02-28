@@ -1,0 +1,765 @@
+
+
+#
+# DISPUTABLE
+#
+
+C org.apache.commons.collections4.map.MultiValueMap$ReflectionFactory->create [()Ljava/lang/Object;]
+C org.apache.commons.collections4.functors.PrototypeFactory$PrototypeCloneFactory->create [()Ljava/lang/Object;]
+C org.apache.commons.collections.map.MultiValueMap$ReflectionFactory->create [()Ljava/lang/Object;]
+C org.apache.commons.collections.functors.PrototypeFactory$PrototypeCloneFactory->create [()Ljava/lang/Object;]
+
+# mess with log, but propably not reachable
+C sun.rmi.log.ReliableLog->snapshot [(Ljava/lang/Object;)V]
+C sun.rmi.log.ReliableLog->update [(Ljava/lang/Object;Z)V] 
+
+# sleep to compensate clock drift
+C net.sf.ehcache.util.SlewClock::timeMillis [()J]
+
+# all serializable subtypes are replaced by references to preexisting instances, therefor we cannot inject descriptors
+C org.springframework.beans.factory.support.AbstractBeanFactory->getBean [(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;]
+C org.springframework.beans.factory.support.AbstractBeanFactory->getBean [(Ljava/lang/String;)Ljava/lang/Object;]
+C org.springframework.beans.factory.support.AbstractBeanFactory->getType [(Ljava/lang/String;)Ljava/lang/Class;]
+C org.springframework.beans.factory.support.AbstractBeanFactory->resolveBeanClass [(Lorg/springframework/beans/factory/support/RootBeanDefinition;Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/Class;]
+
+# bean getter invocation, but seems to be used only in a safe way
+C com.mchange.v2.beans.BeansUtils::extractAccessiblePropertiesToMap [(Ljava/util/Map;Ljava/lang/Object;Ljava/util/Collection;)V]
+
+# bean propery getter/setter invocation on UIComponent
+C javax.faces.component._ComponentAttributesMap->getComponentProperty [(Ljavax/faces/component/_PropertyDescriptorHolder;)Ljava/lang/Object;]
+C javax.faces.component._ComponentAttributesMap->setComponentProperty [(Ljavax/faces/component/_PropertyDescriptorHolder;Ljava/lang/Object;)V]
+
+# Arbitrary method invocation, but this seems to be unreachable and the target needs to be a entity object
+C org.apache.openjpa.event.MethodLifecycleCallbacks->makeCallback [(Ljava/lang/Object;Ljava/lang/Object;I)V]
+C org.apache.openjpa.slice.jdbc.DistributedJDBCConfigurationImpl->fromProperties [(Ljava/util/Map;)V]
+C org.apache.openjpa.kernel.AbstractBrokerFactory->loadPersistentTypes [(Ljava/lang/ClassLoader;)V]
+C org.apache.openjpa.meta.MetaDataRepository->getMetaDataInternal [(Ljava/lang/Class;Ljava/lang/ClassLoader;)Lorg/apache/openjpa/meta/ClassMetaData;]
+C org.apache.openjpa.slice.jdbc.DistributedJDBCConfigurationImpl->setDiagnosticContext [(Lorg/apache/openjpa/conf/OpenJPAConfiguration;)V]
+C org.apache.openjpa.kernel.AbstractBrokerFactory->makeReadOnly [()V] 
+C org.apache.openjpa.meta.ClassMetaData->resolveMeta [(Z)V]
+# calls setUsername,setPassword
+C org.apache.openjpa.lib.jdbc.DelegatingDataSource->setBeanProperty [(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/Object;)Z]
+
+# invoke getter/setter, targets seem to be fixed
+C org.apache.openjpa.lib.util.Options->setInto [(Ljava/lang/Object;Ljava/util/Map$Entry;)Z]
+
+# instantiate with special constructor 
+C org.hibernate.tuple.component.ComponentMetamodel-><init> [(Lorg/hibernate/mapping/Component;Lorg/hibernate/boot/spi/MetadataBuildingOptions;)V]
+
+# Subclass restricted instantiation with default constructor
+C org.omg.CORBA.ORB::create_impl [(Ljava/lang/String;)Lorg/omg/CORBA/ORB;]
+C org.apache.commons.beanutils.LazyDynaMap->newInstance [()Lorg/apache/commons/beanutils/DynaBean;]
+
+# Load fonts
+C sun.font.FontDesignMetrics->readObject [(Ljava/io/ObjectInputStream;)V] 
+
+# Constructs a thread, but luckily does not start it
+C org.sat4j.AbstractLauncher->readObject [(Ljava/io/ObjectInputStream;)V]
+
+# class load, static call to createUI, classes seem to be all fixed
+C javax.swing.UIDefaults->getUI [(Ljavax/swing/JComponent;)Ljavax/swing/plaf/ComponentUI;]
+
+# Eventually reads class file from pool
+C javassist.CtClass->toString [()Ljava/lang/String;]
+
+# invoke arbitrary method on java.lang.annotation.Annotation
+C org.apache.commons.lang3.AnnotationUtils::toString [(Ljava/lang/annotation/Annotation;)Ljava/lang/String;]
+C org.hibernate.validator.internal.util.annotationfactory.AnnotationProxy->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+C org.hibernate.validator.internal.util.annotationfactory.AnnotationProxy->equals [(Ljava/lang/Object;)Z]
+
+
+C org.apache.webbeans.container.BeanCacheKey::callMethod [(Ljava/lang/Object;Ljava/lang/reflect/Method;)Ljava/lang/Object;]
+
+
+# unrefined clone call
+C com.sun.org.apache.xerces.internal.dom.NodeImpl->cloneNode [(Z)Lorg/w3c/dom/Node;] 
+ 
+# launches predefined (sane) runnable
+C org.eclipse.persistence.internal.identitymaps.WeakIdentityMap->checkCleanup [()V]
+C jdk.nashorn.internal.ir.UnaryNode->toString [(Ljava/lang/StringBuilder;Z)V]
+C com.google.common.cache.LocalCache$Segment->refresh [(Ljava/lang/Object;ILcom/google/common/cache/CacheLoader;Z)Ljava/lang/Object;]
+C com.google.common.cache.LocalCache$Segment->get [(Ljava/lang/Object;ILcom/google/common/cache/CacheLoader;)Ljava/lang/Object;]
+C hudson.FilePath->toURI [()Ljava/net/URI;]
+C hudson.FilePath->isDirectory [()Z]
+C org.apache.lucene.search.IndexSearcher$ExecutionHelper->next [()Ljava/lang/Object;]
+C javax.management.NotificationBroadcasterSupport->sendNotification [(Ljavax/management/Notification;)V]
+C java.lang.Class::getReflectionFactory [()Lsun/reflect/ReflectionFactory;]
+C java.security.ProtectionDomain->mergePermissions [()Ljava/security/PermissionCollection;]
+C sun.security.provider.SubjectCodeSource->toString [()Ljava/lang/String;] 
+C java.lang.UNIXProcess$Platform::get [()Ljava/lang/UNIXProcess$Platform;]
+
+
+# Uses logging. System.err, System.out
+C com.sun.jmx.snmp.IPAcl.NetMaskImpl->equals [(Ljava/lang/Object;)Z]
+C javax.management.modelmbean.DescriptorSupport->getFieldValues [([Ljava/lang/String;)[Ljava/lang/Object;]
+C javax.management.modelmbean.DescriptorSupport->getFieldNames [()[Ljava/lang/String;]
+C javax.management.modelmbean.ModelMBeanAttributeInfo->getDescriptor [()Ljavax/management/Descriptor;]
+C javax.management.modelmbean.ModelMBeanOperationInfo->validDescriptor [(Ljavax/management/Descriptor;)Ljavax/management/Descriptor;]
+C javax.management.modelmbean.ModelMBeanNotificationInfo->getDescriptor [()Ljavax/management/Descriptor;]
+C sun.security.util.Debug->println [(Ljava/lang/String;)V]
+C javax.security.auth.PrivateCredentialPermission->init [(Ljava/lang/String;)V] T[T]
+C sun.security.krb5.internal.KRBError->parseEData [([B)V]
+C com.sun.corba.se.impl.corba.TypeCodeImpl->toString [()Ljava/lang/String;]
+C javax.security.auth.PrivateCredentialPermission->impliesCredentialClass [(Ljava/lang/String;Ljava/lang/String;)Z]
+C com.sun.org.apache.bcel.internal.generic.CodeExceptionGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.bcel.internal.generic.FieldGenOrMethodGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.bcel.internal.generic.ConstantPoolGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.bcel.internal.generic.LineNumberGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.bcel.internal.generic.FieldGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.bcel.internal.generic.MethodGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.bcel.internal.generic.ClassGen->clone [()Ljava/lang/Object;] 
+C com.sun.org.apache.bcel.internal.generic.LocalVariableGen->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.xerces.internal.dom.DeferredDocumentTypeImpl->synchronizeChildren [()V]
+C com.sun.deploy.config.NativePlatform-><init> [(Ljava/lang/String;Ljava/lang/String;)V]
+C java.lang.Throwable->printStackTrace [()V]
+C org.apache.xmlbeans.impl.schema.SchemaTypeImpl->ensureStringEnumInfo [()V]
+C org.apache.xmlbeans.impl.schema.SchemaTypeImpl->createUnattachedNode [(Lorg/apache/xmlbeans/SchemaProperty;)Lorg/apache/xmlbeans/XmlObject;]
+C org.apache.xmlbeans.impl.schema.SchemaTypeImpl->createUnattachedSubclass [(Lorg/apache/xmlbeans/SchemaType;)Lorg/apache/xmlbeans/XmlObject;]
+C org.apache.commons.collections.buffer.BoundedBuffer->timeoutWait [(I)V]
+C com.sun.jndi.toolkit.dir.ContextEnumerator->hasMoreDescendants [()Z]
+C com.sun.org.apache.xml.internal.utils.UnImplNode->error [(Ljava/lang/String;)V]
+C com.sun.org.apache.bcel.internal.generic.InstructionList->getByteCode [()[B]
+C com.sun.org.apache.bcel.internal.classfile.Utility::replace [(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;]
+C sun.security.krb5.internal.crypto.CksumType::getInstance [(I)Lsun/security/krb5/internal/crypto/CksumType;]
+C com.sun.org.apache.xerces.internal.impl.xpath.regex.RangeToken->compactRanges [()V]
+C sun.util.logging.PlatformLogger$DefaultLoggerProxy->doLog [(Lsun/util/logging/PlatformLogger$Level;Ljava/lang/String;Ljava/lang/Throwable;)V]
+C org.apache.commons.collections.MapUtils::logInfo [(Ljava/lang/Exception;)V] 
+C java.sql.DriverManager::println [(Ljava/lang/String;)V] 
+C com.sun.corba.se.impl.orbutil.ORBUtility::dprint [(Ljava/lang/String;Ljava/lang/String;)V]
+C com.sun.org.apache.xerces.internal.utils.ObjectFactory::debugPrintln [(Ljava/lang/String;)V]
+C com.sun.org.apache.xpath.internal.functions.Function->execute [(Lcom/sun/org/apache/xpath/internal/XPathContext;)Lcom/sun/org/apache/xpath/internal/objects/XObject;]
+C com.sun.rowset.JdbcRowSetImpl->prepare [()Ljava/sql/PreparedStatement;]
+C com.sun.jndi.ldap.LdapReferralException->getReferralInfo [()Ljava/lang/Object;]
+C com.sun.jndi.ldap.LdapReferralException->getNamingException [()Ljavax/naming/NamingException;]
+C com.sun.jndi.ldap.LdapReferralException->getNewRdn [()Ljava/lang/String;]
+C com.sun.corba.se.impl.orbutil.ORBUtility::dprint [(Ljava/lang/Object;Ljava/lang/String;)V] 
+C com.sun.corba.se.impl.activation.RepositoryImpl->getApplicationNames [()[Ljava/lang/String;]
+C com.sun.java.swing.plaf.gtk.GTKLookAndFeel->getGTKStyleFactory [()Lcom/sun/java/swing/plaf/gtk/GTKStyleFactory;]
+C com.sun.corba.se.impl.activation.ServerManagerImpl->getActiveServers [()[I]
+C com.sun.jndi.ldap.LdapReferralException->getNextReferral [()Ljava/lang/String;]
+C sun.security.krb5.Config::checkRealm [(Ljava/lang/String;)Ljava/lang/String;]
+C com.sun.xml.internal.messaging.saaj.SOAPExceptionImpl->printStackTrace [()V]
+C sun.security.krb5.Config::checkRealm [(Ljava/lang/String;)Ljava/lang/String;]
+C sun.util.logging.PlatformLogger$DefaultLoggerProxy->doLog [(Lsun/util/logging/PlatformLogger$Level;Ljava/lang/String;)V]
+C sun.util.logging.PlatformLogger$DefaultLoggerProxy->doLog [(Lsun/util/logging/PlatformLogger$Level;Ljava/lang/String;[Ljava/lang/Object;)V]
+C jcifs.util.Hexdump::hexdump [(Ljava/io/PrintStream;[BII)V]
+
+# remote passthrou invocation, but the remote end always seems to be the calling endpoint
+C hudson.remoting.RemoteInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+
+# Seems impossible to call the initializeAttributes method
+C org.eclipse.persistence.internal.descriptors.MethodAttributeAccessor->setAttributeValueInObject [(Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)V]
+C org.eclipse.persistence.internal.descriptors.MethodAttributeAccessor->getAttributeValueFromObject [(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;]
+C org.eclipse.persistence.internal.jaxb.many.MapValueAttributeAccessor->setAttributeValueInObject [(Ljava/lang/Object;Ljava/lang/Object;)V]
+C org.eclipse.persistence.internal.jaxb.many.MapValueAttributeAccessor->getAttributeValueFromObject [(Ljava/lang/Object;)Ljava/lang/Object;]
+C org.eclipse.persistence.internal.descriptors.InstantiationPolicy->buildNewInstanceUsingDefaultConstructor [()Ljava/lang/Object;]
+
+# logging
+C java.util.logging.Logger::getLogger [(Ljava/lang/String;)Ljava/util/logging/Logger;]
+C java.util.logging.Logger->log [(Ljava/util/logging/Level;Ljava/lang/String;)V]
+C java.util.logging.Logger->log [(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V]
+C java.util.logging.Logger->log [(Ljava/util/logging/Level;Ljava/lang/String;[Ljava/lang/Object;)V]
+C java.util.logging.Logger->logp [(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V]
+C org.apache.commons.logging.impl.SimpleLog->log [(ILjava/lang/Object;Ljava/lang/Throwable;)V]
+C org.apache.commons.logging.impl.Jdk13LumberjackLogger->log [(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V]
+C org.apache.commons.logging.impl.Jdk14Logger->log [(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V] T[UTT]
+C jdk.nashorn.internal.runtime.logging.DebugLogger::instantiateLogger [(Ljava/lang/String;Ljava/util/logging/Level;)Ljava/util/logging/Logger;]
+C jdk.nashorn.internal.runtime.Context->getLogger [(Ljava/lang/Class;)Ljdk/nashorn/internal/runtime/logging/DebugLogger;]
+C org.apache.commons.logging.LogFactory::getLog [(Ljava/lang/Class;)Lorg/apache/commons/logging/Log;]
+
+# load and instantiate arbitrary classes in sun.rmi.server + call RemoteRef.readExternal on them
+C java.rmi.server.RemoteObject->readObject [(Ljava/io/ObjectInputStream;)V]
+C sun.rmi.server.ActivatableRef->readExternal [(Ljava/io/ObjectInput;)V]
+C java.rmi.activation.ActivationID->readObject [(Ljava/io/ObjectInputStream;)V]
+# create instances of classes <arg1>_Stub, <arg1>_Skel, privileged Proxy creation
+C sun.rmi.server.Util::createStub [(Ljava/lang/Class;Ljava/rmi/server/RemoteRef;)Ljava/rmi/server/RemoteStub;]
+C sun.rmi.server.Util::createSkeleton [(Ljava/rmi/Remote;)Ljava/rmi/server/Skeleton;]
+C sun.rmi.server.Util::createProxy [(Ljava/lang/Class;Ljava/rmi/server/RemoteRef;Z)Ljava/rmi/Remote;]
+C sun.rmi.transport.DGCClient$EndpointEntry->setRenewTime [(J)V]
+
+
+# dereference pre-existing naming enumeration
+C javax.naming.directory.BasicAttributes->hashCode [()I]
+C javax.naming.directory.BasicAttributes->equals [(Ljava/lang/Object;)Z]
+
+# Fixed transformer invocation
+C org.mozilla.javascript.xmlimpl.XmlProcessor->toString [(Lorg/w3c/dom/Node;)Ljava/lang/String;]
+
+# Regex match
+C org.apache.xmlbeans.impl.regex.RegularExpression->matches [(Ljava/lang/String;)Z]
+
+# setter invocation, target is this, param types are fixed
+C org.apache.activemq.command.ActiveMQDestination->buildFromProperties [(Ljava/util/Properties;)V]
+C org.apache.activemq.ActiveMQConnectionFactory->buildFromProperties [(Ljava/util/Properties;)V]
+
+
+#
+# FALSE POSTIIVES, or at least it would seem so
+#
+
+# Privileged calls
+C java.lang.SecurityManager->checkPermission [(Ljava/security/Permission;)V]
+C java.security.ProtectionDomain->impliesCreateAccessControlContext [()Z]
+C java.security.ProtectionDomain->impliesCreateAccessControlContext [()Z]
+C sun.security.krb5.KrbServiceLocator::getKerberosService [(Ljava/lang/String;)[Ljava/lang/String;]
+C java.lang.UNIXProcess$Platform->get [()Ljava/lang/UNIXProcess$Platform;]
+C java.lang.Class->getReflectionFactory [()Lsun/reflect/ReflectionFactory;] 
+
+C org.apache.openjpa.util.Proxies::assertAllowedType [(Ljava/lang/Object;Ljava/lang/Class;)V]
+C org.apache.derby.iapi.types.DataValueFactoryImpl::getContext [(Ljava/lang/String;)Lorg/apache/derby/iapi/services/context/Context;]
+C org.apache.derby.iapi.types.NumberDataType::getContextOrNull [(Ljava/lang/String;)Lorg/apache/derby/iapi/services/context/Context;]
+C org.apache.derby.security.DatabasePermission->initLocation [(Ljava/lang/String;)V]
+
+C sun.security.provider.PolicyFile-><init> [()V]
+
+C sun.management.GcInfoCompositeData::toCompositeData [(Lcom/sun/management/GcInfo;)Ljavax/management/openmbean/CompositeData;]
+C sun.management.GarbageCollectionNotifInfoCompositeData->getCompositeTypeByBuilder [()Ljavax/management/openmbean/CompositeType;]
+C sun.management.GcInfoCompositeData->getCompositeData [()Ljavax/management/openmbean/CompositeData;]
+
+# only get bean getters/setters annotated with @Property
+#C com.oracle.webservices.internal.api.message.BasePropertySet$MethodAccessor->set [(Lcom/oracle/webservices/internal/api/message/PropertySet;Ljava/lang/Object;)V]
+#C com.oracle.webservices.internal.api.message.BasePropertySet$MethodAccessor->get [(Lcom/oracle/webservices/internal/api/message/PropertySet;)Ljava/lang/Object;]
+
+# the DatabaseValueHolders all contain necessary transient fields
+C org.eclipse.persistence.internal.databaseaccess.DatabaseAccessor->getObject [(Ljava/sql/ResultSet;Lorg/eclipse/persistence/internal/helper/DatabaseField;Ljava/sql/ResultSetMetaData;ILorg/eclipse/persistence/internal/databaseaccess/DatabasePlatform;ZLorg/eclipse/persistence/internal/sessions/AbstractSession;)Ljava/lang/Object;]
+C org.eclipse.persistence.indirection.IndirectMap->buildDelegate [()Ljava/util/Hashtable;]
+C org.eclipse.persistence.indirection.IndirectSet->buildDelegate [()Ljava/util/Set;]
+C org.eclipse.persistence.indirection.IndirectList->buildDelegate [()Ljava/util/Vector;]
+C org.eclipse.persistence.internal.indirection.DatabaseValueHolder->getValue [()Ljava/lang/Object;] 
+C org.eclipse.persistence.queries.CursoredStream->hasNext [()Z]
+C org.eclipse.persistence.queries.CursoredStream->hasMoreElements [()Z]
+C org.eclipse.persistence.queries.CursoredStream->read [()Ljava/lang/Object;]
+C org.eclipse.persistence.queries.CursoredStream->getCursorSize [()I]
+C org.eclipse.persistence.internal.descriptors.changetracking.AttributeChangeListener->propertyChange [(Ljava/beans/PropertyChangeEvent;)V]
+C org.eclipse.persistence.internal.descriptors.changetracking.AttributeChangeListener->internalPropertyChange [(Ljava/beans/PropertyChangeEvent;)V]
+C org.eclipse.persistence.queries.ScrollableCursor->retrieveNextObject [()Ljava/lang/Object;]
+C org.eclipse.persistence.internal.sessions.AbstractSession->toString [()Ljava/lang/String;]
+C org.eclipse.persistence.internal.indirection.ProxyIndirectionHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+
+# initializeAttributes not reachable 
+C org.eclipse.persistence.sessions.remote.DistributedSession->getDescriptor [(Ljava/lang/Class;)Lorg/eclipse/persistence/descriptors/ClassDescriptor;]
+
+# mapping is transient
+C org.eclipse.persistence.internal.indirection.UnitOfWorkQueryValueHolder->updateForeignReferenceSet [(Ljava/lang/Object;Ljava/lang/Object;)V]
+C org.eclipse.persistence.internal.indirection.UnitOfWorkQueryValueHolder->updateForeignReferenceRemove [(Ljava/lang/Object;)V]
+
+# only acts on subtypes
+C javax.enterprise.util.AnnotationLiteral::getMemberValue [(Ljava/lang/reflect/Method;Ljava/lang/annotation/Annotation;)Ljava/lang/Object;]
+C org.glassfish.hk2.api.AnnotationLiteral->hashCode [()I]
+C org.glassfish.hk2.api.AnnotationLiteral->equals [(Ljava/lang/Object;)Z] 
+
+# not reachable
+C org.eclipse.persistence.descriptors.CMPPolicy->createPrimaryKeyInstance [(Ljava/lang/Object;Lorg/eclipse/persistence/internal/sessions/AbstractSession;)Ljava/lang/Object;]
+
+# the getRealAttributeValue call is not reachable
+C org.eclipse.persistence.internal.expressions.ParameterExpression->getValue [(Lorg/eclipse/persistence/internal/sessions/AbstractRecord;Lorg/eclipse/persistence/queries/DatabaseQuery;Lorg/eclipse/persistence/internal/sessions/AbstractSession;)Ljava/lang/Object;]
+
+# load arbitrary classes
+C javassist.tools.reflect.ClassMetaobject->getClassObject [(Ljava/lang/String;)Ljava/lang/Class;]
+C org.eclipse.persistence.internal.helper.ConversionManager->convertObjectToClass [(Ljava/lang/Object;)Ljava/lang/Class;]
+C jdk.nashorn.internal.runtime.PropertyMap->readObject [(Ljava/io/ObjectInputStream;)V]
+C net.sf.ezmorph.bean.MorphDynaClass->process [()V]
+C org.eclipse.persistence.internal.helper.DatabaseField->convertClassNamesToClasses [(Ljava/lang/ClassLoader;)V]
+C com.sun.corba.se.impl.encoding.CDRInputStream->read_value [(Ljava/lang/Class;)Ljava/io/Serializable;]
+C com.sun.corba.se.impl.encoding.CDRInputStream_1_0->read_value [(Ljava/lang/Class;)Ljava/io/Serializable;]
+C com.sun.corba.se.impl.encoding.CDRInputStream_1_1->read_value [(Ljava/lang/Class;)Ljava/io/Serializable;]
+C com.sun.corba.se.impl.encoding.CDRInputStream_1_2->read_value [(Ljava/lang/Class;)Ljava/io/Serializable;]
+C org.hibernate.type.EntityType->determineAssociatedEntityClass [()Ljava/lang/Class;] T[] 
+C org.hibernate.type.TypeResolver->heuristicType [(Ljava/lang/String;Ljava/util/Properties;)Lorg/hibernate/type/Type;]
+
+# load fixed classes
+C net.sf.json.JSONObject::isTransient [(Ljava/lang/reflect/AnnotatedElement;Lnet/sf/json/JsonConfig;)Z]
+C com.sun.org.apache.xerces.internal.dom.CoreDOMImplementationImpl->hasFeature [(Ljava/lang/String;Ljava/lang/String;)Z]
+C com.sun.xml.internal.messaging.saaj.soap.JpegDataContentHandler->getTransferDataFlavors [()[Ljava/awt/datatransfer/DataFlavor;]
+C com.sun.xml.internal.ws.policy.privateutil.PolicyLogger::getLoggingSubsystemName [()Ljava/lang/String;]
+C javax.management.remote.rmi.RMIConnector::<clinit> [()V]
+C sun.security.provider.VerificationProvider::<clinit> [()V]
+C org.springframework.beans.factory.support.DisposableBeanAdapter::<clinit> [()V] 
+C org.springframework.context.annotation.CommonAnnotationBeanPostProcessor::<clinit> [()V]
+C org.springframework.beans.factory.support.DefaultListableBeanFactory::<clinit> [()V]
+C java.security.IdentityScope::initializeSystemScope [()V]
+
+# load arbitrary classes (uninitialized), invoke not reachable
+C org.hibernate.jpa.internal.metamodel.AbstractAttribute->readObject [(Ljava/io/ObjectInputStream;)V]
+C java.lang.management.PlatformComponent->getMXBeanInterface [()Ljava/lang/Class;]
+
+# load preexisting classes
+C org.springframework.util.ClassUtils::isVisible [(Ljava/lang/Class;Ljava/lang/ClassLoader;)Z]
+C java.sql.DriverManager::isDriverAllowed [(Ljava/sql/Driver;Ljava/lang/ClassLoader;)Z]
+C sun.management.MappedMXBeanType::toOpenType [(Ljava/lang/reflect/Type;)Ljavax/management/openmbean/OpenType;]
+
+# array from class
+C sun.management.MappedMXBeanType$ArrayMXBeanType-><init> [(Ljava/lang/Class;)V]
+C sun.management.MappedMXBeanType$GenericArrayMXBeanType-><init> [(Ljava/lang/reflect/GenericArrayType;)V]
+
+# Allows toString invocation on arbitrary objects, but BadAttributeValueExpException is much easier to use
+C com.sun.org.apache.xpath.internal.objects.XString->equals [(Ljava/lang/Object;)Z]
+
+# only invokes predefined methods
+C javax.xml.transform.TransformerException->printStackTrace [(Ljava/io/PrintWriter;)V]
+C com.google.common.reflect.Types$JavaVersion$3->typeName [(Ljava/lang/reflect/Type;)Ljava/lang/String;]
+C org.apache.commons.lang.enums.Enum->getNameInOtherClassLoader [(Ljava/lang/Object;)Ljava/lang/String;]
+C org.apache.commons.lang.enums.Enum->equals [(Ljava/lang/Object;)Z]
+C org.apache.commons.lang.enums.ValuedEnum->getValueInOtherClassLoader [(Ljava/lang/Object;)I]
+C org.apache.commons.lang.enum.Enum->getNameInOtherClassLoader [(Ljava/lang/Object;)Ljava/lang/String;]
+C org.apache.commons.lang.enum.Enum->equals [(Ljava/lang/Object;)Z]
+C org.jfree.chart.axis.PeriodAxis->createInstance [(Ljava/lang/Class;Ljava/util/Date;Ljava/util/TimeZone;Ljava/util/Locale;)Lorg/jfree/data/time/RegularTimePeriod;]
+C org.mozilla.javascript.NativeJavaObject->readObject [(Ljava/io/ObjectInputStream;)V]
+C sun.security.ssl.HandshakeMessage$CertificateVerify::digestKey [(Ljava/security/MessageDigest;Ljavax/crypto/SecretKey;)V]
+C com.sun.jndi.ldap.ClientId->invokeComparator [(Lcom/sun/jndi/ldap/ClientId;Lcom/sun/jndi/ldap/ClientId;)Z]
+C com.sun.java.util.jar.pack.PropMap$Beans::invokePropertyChange [(Ljava/lang/Object;Ljava/lang/Object;)V]
+C javax.swing.plaf.basic.LazyActionMap->loadIfNecessary [()V]
+C org.apache.activemq.security.DefaultAuthorizationMap$WildcardAwareSet->isWildcard [(Ljava/lang/Object;)Z] 
+C org.jboss.logging.Slf4jLocationAwareLogger::doLog [(Lorg/slf4j/spi/LocationAwareLogger;Ljava/lang/String;ILjava/lang/String;Ljava/lang/Throwable;)V]
+C sun.rmi.server.Activation->checkArgs [(Ljava/rmi/activation/ActivationGroupDesc;[Ljava/lang/String;)V]
+C org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation::compareEqual [(Ljava/lang/Object;Ljava/lang/Object;)Z]
+C org.codehaus.groovy.runtime.InvokerHelper::toString [(Ljava/lang/Object;)Ljava/lang/String;]
+C org.codehaus.groovy.runtime.InvokerHelper::format [(Ljava/lang/Object;ZI)Ljava/lang/String;]
+C groovy.lang.ObjectRange->increment [(Ljava/lang/Object;)Ljava/lang/Object;]
+C groovy.lang.ObjectRange->decrement [(Ljava/lang/Object;)Ljava/lang/Object;]
+C freemarker.ext.beans._MethodUtil::isVarargs [(Ljava/lang/reflect/Member;)Z]
+C org.apache.commons.beanutils.BeanUtilsBean->initCause [(Ljava/lang/Throwable;Ljava/lang/Throwable;)Z]
+C net.sf.ezmorph.MorpherRegistry->morph [(Ljava/lang/Class;Ljava/lang/Object;)Ljava/lang/Object;] 
+C org.apache.commons.lang.exception.ExceptionUtils::getCause [(Ljava/lang/Throwable;[Ljava/lang/String;)Ljava/lang/Throwable;] 
+C org.eclipse.persistence.jaxb.JAXBTypesafeEnumConverter->convertDataValueToObjectValue [(Ljava/lang/Object;Lorg/eclipse/persistence/sessions/Session;)Ljava/lang/Object;]
+C org.apache.openjpa.kernel.StateManagerImpl->assignVersionField [(Ljava/lang/Object;)V]
+C org.hibernate.engine.internal.EntityEntryContext::deserializeEntityEntry [([CLjava/io/ObjectInputStream;Lorg/hibernate/engine/internal/StatefulPersistenceContext;)Lorg/hibernate/engine/spi/EntityEntry;]
+C org.apache.commons.math3.stat.descriptive.DescriptiveStatistics->getPercentile [(D)D]
+C org.apache.xmlbeans.XmlBeans::getContextTypeLoader [()Lorg/apache/xmlbeans/SchemaTypeLoader;]
+C org.mozilla.javascript.Kit::initCause [(Ljava/lang/RuntimeException;Ljava/lang/Throwable;)Ljava/lang/RuntimeException;]
+C org.joda.time.DateTimeUtils::getDateFormatSymbols [(Ljava/util/Locale;)Ljava/text/DateFormatSymbols;]
+C org.apache.log4j.spi.LocationInfo-><init> [(Ljava/lang/Throwable;Ljava/lang/String;)V]
+C com.sun.xml.internal.messaging.saaj.util.FastInfosetReflection::FastInfosetSource_getInputStream [(Ljavax/xml/transform/Source;)Ljava/io/InputStream;]
+C com.sun.xml.internal.messaging.saaj.util.FastInfosetReflection::FastInfosetResult_getOutputStream [(Ljavax/xml/transform/Result;)Ljava/io/OutputStream;]
+C javax.print.attribute.standard.PrinterStateReasons$PrinterStateReasonSet->size [()I]
+C org.apache.derby.iapi.types.SQLDecimal->getString [()Ljava/lang/String;] 
+C org.eclipse.persistence.internal.oxm.XPathObjectBuilder->buildRow [(Lorg/eclipse/persistence/internal/oxm/record/XMLRecord;Ljava/lang/Object;Lorg/eclipse/persistence/internal/core/sessions/CoreAbstractSession;Lorg/eclipse/persistence/internal/oxm/Marshaller;Lorg/eclipse/persistence/internal/oxm/XPathFragment;)Lorg/eclipse/persistence/internal/oxm/record/XMLRecord;]
+C org.eclipse.persistence.descriptors.DescriptorEventManager->executeEvent [(Lorg/eclipse/persistence/descriptors/DescriptorEvent;)V]
+C com.sun.org.apache.xml.internal.dtm.DTMException->printStackTrace [(Ljava/io/PrintWriter;)V]
+C org.eclipse.persistence.eis.EISDOMRecord-><init> [(Ljavax/resource/cci/Record;)V]
+C org.eclipse.persistence.mappings.transformers.MethodBasedAttributeTransformer->buildAttributeValue [(Lorg/eclipse/persistence/sessions/Record;Ljava/lang/Object;Lorg/eclipse/persistence/sessions/Session;)Ljava/lang/Object;]
+C java.io.ObjectStreamClass->invokeReadObject [(Ljava/lang/Object;Ljava/io/ObjectInputStream;)V]
+C org.hibernate.engine.transaction.jta.platform.internal.WebSphereExtendedJtaPlatform$TransactionManagerAdapter$TransactionAdapter->getLocalId [()Ljava/lang/Object;]
+C com.sun.corba.se.impl.io.ObjectStreamClass->writeReplace [(Ljava/io/Serializable;)Ljava/io/Serializable;]
+C com.sun.xml.internal.bind.v2.runtime.XMLSerializer->fireBeforeMarshalEvents [(Lcom/sun/xml/internal/bind/v2/runtime/JaxBeanInfo;Ljava/lang/Object;)V]
+C com.sun.xml.internal.bind.v2.runtime.XMLSerializer->fireAfterMarshalEvents [(Lcom/sun/xml/internal/bind/v2/runtime/JaxBeanInfo;Ljava/lang/Object;)V]
+C java.lang.invoke.SerializedLambda->readResolve [()Ljava/lang/Object;]
+P com.sun.xml.internal.messaging.saaj.util.FastInfosetReflection
+C java.util.logging.LogManager$Beans::invokePropertyChange [(Ljava/lang/Object;Ljava/lang/Object;)V]
+C com.sun.corba.se.impl.encoding.CDROutputStream_1_0->writeIDLEntity [(Lorg/omg/CORBA/portable/IDLEntity;)V] 
+C freemarker.log.Logger::hasLog4LibraryThatDelegatesToWorkingSLF4J [()Z]
+C groovy.lang.Closure->call [([Ljava/lang/Object;)Ljava/lang/Object;] 
+C com.sun.corba.se.impl.io.ObjectStreamClass::hasStaticInitializer [(Ljava/lang/Class;)Z]
+C org.hibernate.engine.transaction.jta.platform.internal.AbstractJtaPlatform->retrieveTransactionManager [()Ljavax/transaction/TransactionManager;]  
+C org.hibernate.engine.transaction.jta.platform.internal.WebSphereExtendedJtaPlatform$TransactionManagerAdapter$TransactionAdapter->registerSynchronization [(Ljavax/transaction/Synchronization;)V]
+C com.sun.corba.se.impl.util.RepositoryId::getIdFromHelper [(Ljava/lang/Class;)Ljava/lang/String;]  
+C com.sun.naming.internal.ResourceManager$AppletParameter::get [(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;]
+C com.sun.corba.se.impl.io.IIOPOutputStream->invokeObjectWriter [(Lcom/sun/corba/se/impl/io/ObjectStreamClass;Ljava/lang/Object;)V]
+C javax.management.openmbean.OpenMBeanAttributeInfoSupport::convertFromString [(Ljava/lang/String;Ljavax/management/openmbean/OpenType;)Ljava/lang/Object;]
+C org.apache.commons.logging.impl.SimpleLog::getContextClassLoader [()Ljava/lang/ClassLoader;]
+
+# can be used only to call on itself
+C org.mozilla.javascript.ScriptableObject->getImpl [(Ljava/lang/String;ILorg/mozilla/javascript/Scriptable;)Ljava/lang/Object;]
+C org.mozilla.javascript.ScriptableObject->putImpl [(Ljava/lang/String;ILorg/mozilla/javascript/Scriptable;Ljava/lang/Object;I)Z]
+
+
+C org.apache.log4j.spi.LoggingEvent->readLevel [(Ljava/io/ObjectInputStream;)V]
+C org.apache.log4j.pattern.LogEvent->readLevel [(Ljava/io/ObjectInputStream;)V]
+C org.springframework.transaction.jta.OC4JJtaTransactionManager->retrieveUserTransaction [()Ljavax/transaction/UserTransaction;]
+C org.springframework.transaction.jta.WebLogicJtaTransactionManager->retrieveUserTransaction [()Ljavax/transaction/UserTransaction;] 
+# xml-apis has a alternative implementation which includes some compat stuff
+C javax.xml.datatype.DatatypeConfigurationException->readObject [(Ljava/io/ObjectInputStream;)V]
+
+# only invokes java.lang.Object methods
+C javax.management.openmbean.CompositeDataInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+
+# passthrough invocations only
+C org.hibernate.engine.jdbc.SerializableClobProxy->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+C org.hibernate.engine.jdbc.SerializableBlobProxy->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;] 
+C org.springframework.beans.factory.support.AutowireUtils$ObjectFactoryDelegatingInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+C org.hibernate.context.internal.ThreadLocalSessionContext$TransactionProtectionWrapper->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+C org.springframework.orm.jpa.SharedEntityManagerCreator$SharedEntityManagerInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+C org.springframework.orm.jpa.ExtendedEntityManagerCreator$ExtendedEntityManagerInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+C org.linkedin.util.lifecycle.ShutdownProxy->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+C java.rmi.server.RemoteObjectInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+C org.springframework.aop.framework.JdkDynamicAopProxy->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+C org.hibernate.context.ThreadLocalSessionContext$TransactionProtectionWrapper->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+
+C org.apache.commons.lang3.event.EventListenerSupport$ProxyInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+C org.apache.commons.lang3.event.EventListenerSupport->createProxy [(Ljava/lang/Class;Ljava/lang/ClassLoader;)V] T[TU] 
+
+# these just return their arguments, and cause type confusion 
+C java.util.Objects::requireNonNull [(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;]
+C java.util.Collections$CheckedCollection->typeCheck [(Ljava/lang/Object;)Ljava/lang/Object;]
+C java.lang.reflect.Method->copy [()Ljava/lang/reflect/Method;]
+C com.google.common.base.Preconditions::checkNotNull [(Ljava/lang/Object;)Ljava/lang/Object;]
+C com.unboundid.util.Validator::ensureNotNull [(Ljava/lang/Object;)V]
+C com.unboundid.util.Validator::ensureNotNull [(Ljava/lang/Object;Ljava/lang/Object;)V] 
+C com.unboundid.util.Validator::ensureTrue [(ZLjava/lang/String;)V]
+
+# only predefined handlers
+C java.net.URL::getURLStreamHandler [(Ljava/lang/String;)Ljava/net/URLStreamHandler;]
+C org.apache.openjpa.kernel.FetchConfigurationImpl->setHint [(Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V] U[UUU]
+
+# loads URL via ClassLoader
+C java.util.ResourceBundle::findBundleInCache [(Ljava/util/ResourceBundle$CacheKey;Ljava/util/ResourceBundle$Control;)Ljava/util/ResourceBundle;]
+C java.util.ResourceBundle::loadBundle [(Ljava/util/ResourceBundle$CacheKey;Ljava/util/List;Ljava/util/ResourceBundle$Control;Z)Ljava/util/ResourceBundle;]
+C java.util.ResourceBundle::findBundle [(Ljava/util/ResourceBundle$CacheKey;Ljava/util/List;Ljava/util/List;ILjava/util/ResourceBundle$Control;Ljava/util/ResourceBundle;)Ljava/util/ResourceBundle;]
+
+# Reads a predefined data file 
+C java.time.chrono.HijrahChronology->loadCalendarData [()V]
+C sun.util.calendar.CalendarSystem::forName [(Ljava/lang/String;)Lsun/util/calendar/CalendarSystem;]
+C sun.security.util.ResourcesMgr::getString [(Ljava/lang/String;)Ljava/lang/String;]
+C sun.security.util.ResourcesMgr::getString [(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;]
+C org.elasticsearch.common.joda.time.DateTimeZone::getDefaultProvider [()Lorg/elasticsearch/common/joda/time/tz/Provider;]
+C org.joda.time.DateTimeZone::getDefaultProvider [()Lorg/joda/time/tz/Provider;]
+C com.sun.org.apache.xml.internal.serializer.OutputPropertiesFactory::getDefaultMethodProperties [(Ljava/lang/String;)Ljava/util/Properties;]
+C javax.xml.transform.FactoryFinder::find [(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Object;]
+C javax.xml.parsers.FactoryFinder::find [(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Object;]
+C sun.util.calendar.ZoneInfoFile::getZoneInfo0 [(Ljava/lang/String;)Lsun/util/calendar/ZoneInfo;]
+C com.sun.org.apache.xpath.internal.functions.FuncSystemProperty->loadPropertyFile [(Ljava/lang/String;Ljava/util/Properties;)V]
+C sun.util.calendar.CalendarSystem::getCalendarProperties [()Ljava/util/Properties;]
+C org.omg.CORBA.ORB$2->run [()Ljava/lang/Object;]
+C javax.rmi.CORBA.Stub::getORBPropertiesFile [()Ljava/util/Properties;] 
+C java.util.logging.LogManager->readConfiguration [()V]
+C com.sun.org.apache.xml.internal.utils.XMLReaderManager->getXMLReader [()Lorg/xml/sax/XMLReader;]
+C javax.xml.soap.FactoryFinder::find [(Ljava/lang/String;Ljava/lang/String;Z)Ljava/lang/Object;] 
+C com.sun.org.apache.bcel.internal.util.SyntheticRepository-><clinit> [()V]
+C org.apache.commons.logging.impl.SimpleLog::<clinit> [()V]
+C sun.security.provider.PolicyPermissions->init [()V]
+C com.sun.naming.internal.ResourceManager::getApplicationResources [()Ljava/util/Hashtable;]
+C com.sun.naming.internal.ResourceManager::getProviderResource [(Ljava/lang/Object;)Ljava/util/Hashtable;]
+C javax.sql.rowset.spi.SyncFactory::initMapIfNecessary [()V]
+
+
+# Uses ByteArrayOutputStream/StringBuffer/StringReader
+C java.security.MessageDigest->toString [()Ljava/lang/String;]
+C com.sun.corba.se.impl.corba.TypeCodeImpl->toString [()Ljava/lang/String;]
+C com.sun.org.apache.bcel.internal.classfile.Utility::codeToString [([BLcom/sun/org/apache/bcel/internal/classfile/ConstantPool;IIZ)Ljava/lang/String;]
+C com.sun.org.apache.bcel.internal.generic.FieldGenOrMethodGen->clone [()Ljava/lang/Object;]
+C sun.rmi.server.Util::computeMethodHash [(Ljava/lang/reflect/Method;)J]
+C com.sun.deploy.xml.XMLNode->toString [(Z)Ljava/lang/String;]
+C sun.misc.CharacterEncoder->encodeBuffer [([B)Ljava/lang/String;]
+C org.codehaus.groovy.control.MultipleCompilationErrorsException->getMessage [()Ljava/lang/String;]
+C groovy.lang.GString->toString [()Ljava/lang/String;]
+C org.codehaus.groovy.syntax.CSTNode->toString [()Ljava/lang/String;]
+C org.apache.tools.ant.ComponentHelper->diagnoseCreationFailure [(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;]
+C org.eclipse.persistence.internal.helper.Helper::printStackTraceToString [(Ljava/lang/Throwable;)Ljava/lang/String;] U[T]
+C org.bouncycastle.jce.provider.JCEECPrivateKey->getEncoded [()[B]
+C org.bouncycastle.jce.provider.JCERSAPrivateKey->getEncoded [()[B]
+C org.bouncycastle.jce.provider.JCERSAPrivateCrtKey->getEncoded [()[B]
+C freemarker.template.Template->toString [()Ljava/lang/String;]
+C org.bouncycastle.asn1.DERBitString-><init> [(Lorg/bouncycastle/asn1/DEREncodable;)V]
+C org.bouncycastle.asn1.DERBitString->getString [()Ljava/lang/String;]
+C org.bouncycastle.asn1.DERUniversalString->getString [()Ljava/lang/String;]
+C org.bouncycastle.asn1.ASN1Primitive::fromByteArray [([B)Lorg/bouncycastle/asn1/ASN1Primitive;]
+C org.bouncycastle.asn1.ASN1Encodable->getDEREncoded [()[B]
+C org.bouncycastle.jce.provider.X509CertificateObject->toString [()Ljava/lang/String;]
+C org.bouncycastle.jce.provider.X509CertificateObject->getEncoded [()[B] 
+C org.bouncycastle.jcajce.provider.asymmetric.x509.X509CertificateObject->toString [()Ljava/lang/String;]
+C org.bouncycastle.jcajce.provider.asymmetric.rsa.BCRSAPrivateCrtKey->getEncoded [()[B] 
+C org.bouncycastle.jcajce.provider.asymmetric.dsa.BCDSAPrivateKey->getEncoded [()[B]
+C org.bouncycastle.jcajce.provider.asymmetric.rsa.BCRSAPrivateKey->getEncoded [()[B]
+C org.joda.time.format.DateTimeFormatter->print [(Lorg/joda/time/ReadablePartial;)Ljava/lang/String;]
+C org.joda.time.format.DateTimeFormatter->print [(Lorg/joda/time/ReadableInstant;)Ljava/lang/String;]
+C org.joda.time.format.DateTimeFormatter->print [(J)Ljava/lang/String;]
+C org.joda.time.format.DateTimeFormatter->printTo [(Ljava/lang/StringBuffer;J)V]
+C javax.xml.ws.EndpointReference->toString [()Ljava/lang/String;]
+C com.sun.xml.internal.ws.api.message.Packet->toString [()Ljava/lang/String;]
+C com.sun.xml.internal.ws.api.addressing.WSEndpointReference->toString [()Ljava/lang/String;]
+C com.sun.org.apache.xml.internal.security.signature.XMLSignatureInput->getBytes [()[B]
+C sun.misc.ProxyGenerator->generateClassFile [()[B]
+C org.codehaus.groovy.runtime.EncodingGroovyMethods$1->toString [()Ljava/lang/String;]
+C org.elasticsearch.common.inject.internal.Errors::format [(Ljava/lang/String;Ljava/util/Collection;)Ljava/lang/String;]
+C com.sun.nio.zipfs.ZipFileAttributes->toString [()Ljava/lang/String;]
+C groovy.util.ConfigObject->toString [()Ljava/lang/String;]
+C org.apache.commons.lang3.exception.ExceptionUtils::getStackTrace [(Ljava/lang/Throwable;)Ljava/lang/String;] 
+C org.eclipse.persistence.sessions.DatabaseLogin->toString [()Ljava/lang/String;] 
+C org.eclipse.persistence.exceptions.IntegrityException->getMessage [()Ljava/lang/String;]
+C com.google.inject.internal.Errors::format [(Ljava/lang/String;Ljava/util/Collection;)Ljava/lang/String;]  
+C org.apache.derby.iapi.types.SQLChar->getLength [()I]
+C com.mchange.lang.ThrowableUtils::extractStackTrace [(Ljava/lang/Throwable;)Ljava/lang/String;]
+C org.eclipse.persistence.sessions.DatasourceLogin->toString [()Ljava/lang/String;] 
+C com.sun.xml.internal.bind.v2.runtime.unmarshaller.Base64Data->get [()[B]
+C com.sun.xml.internal.org.jvnet.staxex.Base64Data->get [()[B]
+C sun.security.x509.X509CRLEntryImpl->getEncoded0 [()[B] 
+C com.sun.xml.internal.ws.message.JAXBAttachment->asInputStream [()Ljava/io/InputStream;]
+C com.sun.xml.internal.messaging.saaj.soap.SOAPPartImpl->getContentAsStream [()Ljava/io/InputStream;]
+C java.security.UnresolvedPermission->readObject [(Ljava/io/ObjectInputStream;)V]
+C sun.security.jgss.krb5.WrapToken->encode [()[B] 
+C java.io.ObjectStreamClass::computeDefaultSUID [(Ljava/lang/Class;)J]
+C org.hibernate.type.descriptor.java.BlobTypeDescriptor->toString [(Ljava/sql/Blob;)Ljava/lang/String;]
+C com.sun.org.apache.bcel.internal.classfile.JavaClass->getBytes [()[B]
+C sun.security.x509.RDN-><init> [(Ljava/lang/String;Ljava/util/Map;)V]
+
+# Instantiates from a fixed/non-controlled set of classes
+C sun.security.x509.OtherName->equals [(Ljava/lang/Object;)Z]
+C javax.rmi.CORBA.Stub->setDefaultDelegate [()V]
+C com.sun.corba.se.impl.io.IIOPInputStream->createOptionalDataException [()Ljava/io/OptionalDataException;]
+C java.security.KeyFactory->nextSpi [(Ljava/security/KeyFactorySpi;)Ljava/security/KeyFactorySpi;]
+C java.security.Signature$Delegate->chooseFirstProvider [()V] 
+C java.security.Signature::getInstance [(Ljava/lang/String;)Ljava/security/Signature;]
+C javax.crypto.Cipher::getInstance [(Ljava/lang/String;)Ljavax/crypto/Cipher;] 
+C java.security.cert.CertificateFactory::getInstance [(Ljava/lang/String;)Ljava/security/cert/CertificateFactory;] 
+C javax.crypto.Cipher->chooseFirstProvider [()V]
+C javax.crypto.Cipher->chooseProvider [(IILjava/security/Key;Ljava/security/spec/AlgorithmParameterSpec;Ljava/security/AlgorithmParameters;Ljava/security/SecureRandom;)V]
+C javax.crypto.Cipher::getInstance [(Ljava/lang/String;Ljava/security/Provider;)Ljavax/crypto/Cipher;]
+C javax.crypto.Mac->chooseFirstProvider [()V]
+C javax.crypto.Mac->chooseProvider [(Ljava/security/Key;Ljava/security/spec/AlgorithmParameterSpec;)V]
+C javax.crypto.Mac::getInstance [(Ljava/lang/String;)Ljavax/crypto/Mac;]
+C javax.crypto.Mac::getInstance [(Ljava/lang/String;Ljava/security/Provider;)Ljavax/crypto/Mac;]
+C javax.crypto.KeyAgreement->getProvider [()Ljava/security/Provider;]
+C javax.crypto.KeyAgreement::getInstance [(Ljava/lang/String;)Ljavax/crypto/KeyAgreement;]
+C javax.crypto.KeyAgreement->chooseFirstProvider [()V]
+C java.security.MessageDigest::getInstance [(Ljava/lang/String;Ljava/lang/String;)Ljava/security/MessageDigest;]
+C java.security.MessageDigest::getInstance [(Ljava/lang/String;)Ljava/security/MessageDigest;]
+C javax.crypto.KeyGenerator->init [(Ljava/security/spec/AlgorithmParameterSpec;Ljava/security/SecureRandom;)V] T[TT] 
+C org.springframework.transaction.jta.WebLogicJtaTransactionManager->loadWebLogicTransactionHelper [()V]
+C org.springframework.transaction.jta.WebLogicJtaTransactionManager->retrieveTransactionManager [()Ljavax/transaction/TransactionManager;]
+C javassist.bytecode.ConstInfo->toString [()Ljava/lang/String;]
+C freemarker.core.ParseException->isInJBossToolsMode [()Z] 
+# extensors of DynaClass
+C org.apache.commons.beanutils.BasicDynaClass->newInstance [()Lorg/apache/commons/beanutils/DynaBean;]
+C java.awt.Toolkit::loadAssistiveTechnologies [()V]
+C org.eclipse.persistence.platform.xml.XMLPlatformFactory->getXMLPlatformClass [()Ljava/lang/Class;]
+C java.util.concurrent.ForkJoinTask->getThrowableException [()Ljava/lang/Throwable;]
+C jenkins.slaves.StandardOutputSwapper$ChannelSwapper->swap [(Lhudson/remoting/StandardOutputStream;)V]
+C org.eclipse.persistence.internal.queries.ContainerPolicy->containerInstance [()Ljava/lang/Object;]
+C org.eclipse.persistence.internal.queries.SortedCollectionContainerPolicy->containerInstance [()Ljava/lang/Object;]
+C org.apache.webbeans.config.WebBeansContext->getService [(Ljava/lang/Class;)Ljava/lang/Object;]
+C sun.security.jgss.ProviderList->getMechFactory [(Lsun/security/jgss/ProviderList$PreferencesEntry;Lorg/ietf/jgss/Oid;)Lsun/security/jgss/spi/MechanismFactory;]
+C sun.awt.shell.ShellFolder-><clinit> [()V] 
+C sun.security.provider.VerificationProvider-><clinit> [()V]
+C javax.management.remote.rmi.RMIConnector-><clinit> [()V]
+C com.sun.corba.se.impl.javax.rmi.CORBA.Util->mapSystemException [(Lorg/omg/CORBA/SystemException;)Ljava/rmi/RemoteException;]
+C com.sun.corba.se.impl.util.Utility::getHelper [(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;)Lorg/omg/CORBA/portable/BoxedValueHelper;]
+C com.sun.corba.se.impl.orb.ORBImpl->postInit [([Ljava/lang/String;Lcom/sun/corba/se/spi/orb/DataCollector;)V]
+C com.sun.java.util.jar.pack.PropMap$Beans::newPropertyChangeEvent [(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;]
+C sun.security.jca.ProviderConfig->getProvider [()Ljava/security/Provider;]
+C java.util.logging.LogManager->loadLoggerHandlers [(Ljava/util/logging/Logger;Ljava/lang/String;Ljava/lang/String;)V]
+C java.security.AlgorithmParameters::getInstance [(Ljava/lang/String;)Ljava/security/AlgorithmParameters;]
+C java.security.AlgorithmParameters::getInstance [(Ljava/lang/String;Ljava/security/Provider;)Ljava/security/AlgorithmParameters;]
+C java.security.AlgorithmParameters::getInstance [(Ljava/lang/String;Ljava/lang/String;)Ljava/security/AlgorithmParameters;]
+C javax.rmi.CORBA.Stub::<clinit> [()V]
+C sun.awt.shell.ShellFolder::<clinit> [()V]
+C java.net.InetAddressImplFactory::create [()Ljava/net/InetAddressImpl;]
+C java.security.Policy::getPolicyNoCheck [()Ljava/security/Policy;] 
+C org.dom4j.DocumentFactory::getInstance [()Lorg/dom4j/DocumentFactory;] 
+C org.dom4j.QName::<clinit> [()V]
+C org.dom4j.dom.DOMDocumentFactory::<clinit> [()V] 
+C freemarker.ext.dom.NodeModel->getXPathSupport [()Lfreemarker/ext/dom/XPathSupport;] 
+C org.hibernate.cfg.BaselineSessionEventsListenerBuilder->buildBaselineList [()Ljava/util/List;]
+C sun.security.x509.X500Name->asX500Principal [()Ljavax/security/auth/x500/X500Principal;]
+C javax.net.ssl.SSLSocketFactory::getDefault [()Ljavax/net/SocketFactory;] 
+C sun.security.x509.OtherName->getGNI [(Lsun/security/util/ObjectIdentifier;[B)Lsun/security/x509/GeneralNameInterface;]
+C com.sun.org.apache.xerces.internal.dom.DOMConfigurationImpl-><init> [(Lcom/sun/org/apache/xerces/internal/util/SymbolTable;Lcom/sun/org/apache/xerces/internal/xni/parser/XMLComponentManager;)V]
+C sun.font.FontManagerFactory::getInstance [()Lsun/font/FontManager;]
+C java.security.SecureRandom::getInstance [(Ljava/lang/String;Ljava/lang/String;)Ljava/security/SecureRandom;] T[TT]
+C javax.security.cert.X509Certificate::getInstance [([B)Ljavax/security/cert/X509Certificate;]
+C sun.security.pkcs11.P11Util::getSunRsaSignProvider [()Ljava/security/Provider;]
+C sun.security.pkcs11.P11Util::getSunJceProvider [()Ljava/security/Provider;]
+C com.sun.corba.se.spi.orb.ORB::setupPresentationManager [()Lcom/sun/corba/se/spi/presentation/rmi/PresentationManager;]
+C com.sun.corba.se.impl.io.ValueHandlerImpl->createOutputStream [()Lcom/sun/corba/se/impl/io/IIOPOutputStream;]
+C com.sun.corba.se.impl.io.ValueHandlerImpl->createInputStream [()Lcom/sun/corba/se/impl/io/IIOPInputStream;]
+C sun.security.ssl.KerberosClientKeyExchange->createImpl [()Lsun/security/ssl/KerberosClientKeyExchange;]
+C java.security.Provider$Service->newInstance [(Ljava/lang/Object;)Ljava/lang/Object;]
+
+# Callables are all predefined
+C jdk.nashorn.api.scripting.ScriptObjectMirror->inGlobal [(Ljava/util/concurrent/Callable;)Ljava/lang/Object;]
+C javax.rmi.CORBA.Stub-><clinit> [()V]
+C javax.management.Notification-><clinit> [()V]
+
+# Collection iterator (assume to be safe)
+C javax.naming.Reference->equals [(Ljava/lang/Object;)Z]
+C java.util.IdentityHashMap$KeySet->hashCode [()I]
+
+# Instantiates preexisting classes
+C sun.security.provider.PolicyPermissions->init [()V]
+C java.security.UnresolvedPermission->resolve [(Ljava/security/Permission;[Ljava/security/cert/Certificate;)Ljava/security/Permission;]
+C org.eclipse.persistence.internal.sessions.factories.ObjectPersistenceRuntimeXMLProject_11_1_1$IsSetNullPolicyIsSetParameterTypesAttributeAccessor->setAttributeValueInObject [(Ljava/lang/Object;Ljava/lang/Object;)V]
+C org.springframework.aop.framework.ObjenesisCglibAopProxy->createProxyClassAndInstance [(Lorg/springframework/cglib/proxy/Enhancer;[Lorg/springframework/cglib/proxy/Callback;)Ljava/lang/Object;]
+
+# instantiate self
+C com.sun.corba.se.impl.encoding.CDRInputStream_1_0->dup [()Lcom/sun/corba/se/impl/encoding/CDRInputStreamBase;] T[]
+C com.sun.corba.se.impl.encoding.IDLJavaSerializationInputStream->dup [()Lcom/sun/corba/se/impl/encoding/CDRInputStreamBase;]
+
+# Instantiates new instance for given Set object
+C org.apache.commons.collections4.list.SetUniqueList->createSetBasedOnList [(Ljava/util/Set;Ljava/util/List;)Ljava/util/Set;]
+
+# DERInputStream/DEROutputStream is safe
+P sun.security.util.DerValue
+P sun.security.util.DerInputStream
+P sun.security.util.DerOutputStream
+C sun.security.provider.certpath.X509CertPath->encodePKIPATH [()[B]
+C sun.security.x509.X509CertInfo->getEncodedInfo [()[B]
+
+# Output is DOMResult
+C com.sun.xml.internal.messaging.saaj.soap.EnvelopeFactory::createEnvelope [(Ljavax/xml/transform/Source;Lcom/sun/xml/internal/messaging/saaj/soap/SOAPPartImpl;)Lcom/sun/xml/internal/messaging/saaj/soap/Envelope;]
+
+# load net library
+C java.net.InetAddress-><clinit> [()V]
+C java.net.InetAddress$1->run [()Ljava/lang/Void;]
+
+C com.sun.xml.internal.ws.api.SOAPVersion::<clinit> [()V]
+C org.springframework.core.convert.TypeDescriptor::<clinit> [()V] 
+
+
+# passthrough interruption
+C com.google.common.cache.LocalCache$LoadingValueReference->loadFuture [(Ljava/lang/Object;Lcom/google/common/cache/CacheLoader;)Lcom/google/common/util/concurrent/ListenableFuture;]
+
+# static fields used in singleton Thread
+S java.lang.ref.Reference::access$202 [(Ljava/lang/ref/Reference;)Ljava/lang/ref/Reference;]
+
+# Set fields on self
+C com.sun.deploy.cache.CachedManifest->loadFullManifest [()V]
+
+# InputStream is original ObjectInputStream
+C sun.security.x509.X509Key->readObject [(Ljava/io/ObjectInputStream;)V]
+C sun.security.pkcs.PKCS8Key->readObject [(Ljava/io/ObjectInputStream;)V]
+C org.apache.xmlbeans.impl.values.XmlObjectBase$SerializedRootObject->readObjectV0 [(Ljava/io/ObjectInputStream;I)Ljava/lang/String;] T[UT]
+C org.apache.derby.iapi.types.SQLBinary->readFromStream [(Ljava/io/InputStream;)V]
+C com.sun.security.cert.internal.x509.X509V1CertImpl->readObject [(Ljava/io/ObjectInputStream;)V]
+C java.security.CodeSource->readObject [(Ljava/io/ObjectInputStream;)V]
+C jdk.nashorn.internal.runtime.FunctionInitializer->readObject [(Ljava/io/ObjectInputStream;)V]
+C sun.rmi.transport.ConnectionInputStream->readID [()V]
+
+# Formatter on StringBuilder is safe
+C java.lang.String::format [(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;]
+C java.net.HostPortrange-><init> [(Ljava/lang/String;Ljava/lang/String;)V]
+
+# groovy enhanced
+S org.linkedin.groovy.util.io.fs.SerializableFileResource::$getCallSiteArray [()[Lorg/codehaus/groovy/runtime/callsite/CallSite;]
+
+# load arbitrary resource bundle
+C java.util.logging.LogRecord->readObject [(Ljava/io/ObjectInputStream;)V]
+C com.sun.xml.internal.ws.util.exception.JAXWSExceptionBase->getMessage [()Ljava/lang/String;]
+
+# only invokes methods invocable by another invocation handler
+C com.sun.corba.se.spi.orbutil.proxy.CompositeInvocationHandlerImpl->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+
+# FP: outer class not serializable
+C net.sf.ehcache.store.LruMemoryStore$SpoolingLinkedHashMap->removeLeastRecentlyUsedElement [(Lnet/sf/ehcache/Element;)Z] T[T]
+
+# See no way to instantiate this from tainted values
+C sun.swing.SwingLazyValue->createValue [(Ljavax/swing/UIDefaults;)Ljava/lang/Object;]
+C com.sun.java.swing.plaf.gtk.GTKStyle$GTKLazyValue->createValue [(Ljavax/swing/UIDefaults;)Ljava/lang/Object;]
+
+# field is not serializable 
+C org.dom4j.bean.BeanAttribute->setValue [(Ljava/lang/String;)V]
+C com.sun.org.apache.bcel.internal.util.ClassPath$Zip->getClassFile [(Ljava/lang/String;Ljava/lang/String;)Lcom/sun/org/apache/bcel/internal/util/ClassPath$ClassFile;]
+
+# Arbitrary default constructor instantiation, propably not reachable
+C org.eclipse.persistence.internal.sessions.factories.ObjectPersistenceRuntimeXMLProject$4->convertDataValueToObjectValue [(Ljava/lang/Object;Lorg/eclipse/persistence/sessions/Session;)Ljava/lang/Object;]
+C com.sun.corba.se.impl.presentation.rmi.StubFactoryStaticImpl->makeStub [()Lorg/omg/CORBA/Object;] 
+
+# safe enumeration
+C com.sun.deploy.security.BasicPermissionCollection->readObject [(Ljava/io/ObjectInputStream;)V]
+C java.net.Inet6Address::deriveNumericScope [([BLjava/net/NetworkInterface;)I]
+C java.security.BasicPermissionCollection->readObject [(Ljava/io/ObjectInputStream;)V]
+# iteration on self
+C java.util.AbstractList->hashCode [()I]
+C java.util.WeakHashMap$EntrySet->deepCopy [()Ljava/util/List;]
+
+# only allows deserialization of Tokens previously serialized in the same VM
+C sun.security.pkcs11.P11Key->hashCode [()I]
+C sun.security.pkcs11.P11Key->equals [(Ljava/lang/Object;)Z]
+C sun.security.pkcs11.P11Key->getEncoded [()[B]
+C sun.security.pkcs11.P11Key$P11SecretKey->getEncodedInternal [()[B]
+C sun.security.pkcs11.Session->id [()J]
+C sun.security.pkcs11.Token->getTokenId [()[B]
+C sun.security.pkcs11.Token->getOpSession [()Lsun/security/pkcs11/Session;]
+C sun.security.pkcs11.Token->getObjSession [()Lsun/security/pkcs11/Session;]
+C sun.security.pkcs11.Token->supportsRawSecretKeyImport [()Z]
+
+# a) most certainly not reachable, b) fixed classloader and service
+C com.sun.xml.internal.ws.util.ServiceFinder$ServiceNameIterator->hasNext [()Z]
+C com.sun.xml.internal.ws.util.ServiceFinder$LazyIterator->next [()Ljava/lang/Object;] 
+C java.util.ServiceLoader$LazyIterator->hasNextService [()Z]
+C java.util.ServiceLoader$LazyIterator->nextService [()Z]  
+# 
+C java.util.zip.ZipFile$ZipEntryIterator->next [()Ljava/lang/Object;]
+
+
+
+# not serializable and propably not instantiable
+C org.apache.commons.beanutils.BeanMap->get [(Ljava/lang/Object;)Ljava/lang/Object;]
+C org.apache.commons.beanutils.BeanMap->put [(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;]
+C org.apache.commons.beanutils.BeanMap->clear [()V]
+C org.apache.commons.collections.BeanMap->get [(Ljava/lang/Object;)Ljava/lang/Object;]
+C org.apache.commons.collections.BeanMap->put [(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;]
+C org.apache.commons.collections.BeanMap->clear [()V]
+C org.dom4j.bean.BeanAttribute->getValue [()Ljava/lang/String;] 
+C hudson.model.DirectoryBrowserSupport$FileComparator->compare [(Ljava/lang/Object;Ljava/lang/Object;)I]
+C org.eclipse.persistence.sdo.helper.jaxb.JAXBList->add [(Ljava/lang/Object;)Z]
+C org.eclipse.persistence.sdo.helper.jaxb.JAXBList->contains [(Ljava/lang/Object;)Z]
+C org.eclipse.persistence.sdo.helper.jaxb.JAXBList->remove [(Ljava/lang/Object;)Z]
+C org.eclipse.persistence.sdo.helper.jaxb.JAXBList->getContainer [()Ljava/lang/Object;]
+C org.eclipse.persistence.sdo.helper.jaxb.JAXBValueStore->isSetDeclaredProperty [(I)Z]
+C org.eclipse.persistence.sdo.helper.jaxb.JAXBValueStore->setDeclaredProperty [(ILjava/lang/Object;)V]
+C org.eclipse.persistence.sdo.helper.jaxb.JAXBValueStore->getDeclaredProperty [(I)Ljava/lang/Object;]
+C org.eclipse.persistence.sdo.helper.jaxb.JAXBValueStore->copy [()Lorg/eclipse/persistence/sdo/ValueStore;]
+C org.eclipse.persistence.sdo.helper.jaxb.JAXBValueStore->unsetDeclaredProperty [(I)V]
+
+# ScriptRuntime::toString calls only for String or Element
+C org.mozilla.javascript.xmlimpl.XmlProcessor->ecmaToXmlString [(Lorg/w3c/dom/Node;)Ljava/lang/String;]
+
+# set empty list only
+C org.eclipse.persistence.sdo.SDODataObject->getList [(Lcommonj/sdo/Property;)Ljava/util/List;]
+
+# only predefined instances are used
+C org.eclipse.persistence.expressions.ExpressionOperator->createNode [()Lorg/eclipse/persistence/expressions/Expression;]   
+
+# Random call to default random
+C net.sf.jasperreports.engine.base.ElementsBlock->makeUID [()Ljava/lang/String;]
+C java.util.UUID::randomUUID [()Ljava/util/UUID;]
+C org.eclipse.persistence.descriptors.invalidation.CacheInvalidationPolicy->setIsInvalidationRandomized [(Z)V]
+C org.apache.openjpa.lib.util.UUIDGenerator::createType1 [()[B]
+C org.apache.openjpa.lib.util.concurrent.NullSafeConcurrentHashMap-><init> [()V]
+C java.util.Random-><init> [()V]
+C java.util.concurrent.ThreadLocalRandom-><clinit> [()V]
+C java.util.concurrent.ThreadLocalRandom->initialSeed [()J]
+C java.util.UUID->randomUUID [()Ljava/util/UUID;]
+C java.security.SecureRandom->nextBytes [([B)V]
+C java.util.Random-><init> [(J)V] 
+C java.security.SecureRandom-><init> [()V] 
+C sun.security.provider.NativePRNG$1->run [()Lsun/security/provider/NativePRNG$RandomIO;]
+
+# Exit is not intentionally reachable
+C java.lang.StringCoding::encode [([CII)[B]
+C java.lang.StringCoding::decode [([BII)[C]
+
+
+C org.codehaus.groovy.runtime.MethodRankHelper::getMethodSuggestionString [(Ljava/lang/String;Ljava/lang/Class;[Ljava/lang/Object;)Ljava/lang/String;]
+C org.codehaus.groovy.runtime.MethodRankHelper::getPropertySuggestionString [(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/String;] 
+
+# create proxy
+C sun.reflect.annotation.AnnotationParser::annotationForMap [(Ljava/lang/Class;Ljava/util/Map;)Ljava/lang/annotation/Annotation;]
+C org.springframework.core.SerializableTypeWrapper::forTypeProvider [(Lorg/springframework/core/SerializableTypeWrapper$TypeProvider;)Ljava/lang/reflect/Type;]
+C org.springframework.core.annotation.AnnotationUtils::synthesizeAnnotation [(Ljava/lang/annotation/Annotation;Ljava/lang/reflect/AnnotatedElement;)Ljava/lang/annotation/Annotation;]
+
+# load class resource from classloader
+C com.sun.xml.internal.bind.util.Which::which [(Ljava/lang/Class;)Ljava/lang/String;]
+
+# XMLStreamBuffer
+C com.sun.xml.internal.ws.message.jaxb.JAXBMessage::create [(Lcom/sun/xml/internal/ws/spi/db/BindingContext;Ljava/lang/Object;Lcom/sun/xml/internal/ws/api/SOAPVersion;Lcom/sun/xml/internal/ws/api/message/MessageHeaders;Lcom/sun/xml/internal/ws/api/message/AttachmentSet;)Lcom/sun/xml/internal/ws/api/message/Message;]
+
+# seems to be some kind of buffer stream that the output is going to
+C com.sun.corba.se.impl.corba.AnyImpl->create_input_stream [()Lorg/omg/CORBA/portable/InputStream;]
+C com.sun.corba.se.impl.javax.rmi.CORBA.Util->copyObject [(Ljava/lang/Object;Lorg/omg/CORBA/ORB;)Ljava/lang/Object;]
+C com.sun.corba.se.impl.corba.AnyImpl::extractAnyFromStream [(Lorg/omg/CORBA/TypeCode;Lorg/omg/CORBA/portable/InputStream;Lcom/sun/corba/se/spi/orb/ORB;)Lorg/omg/CORBA/Any;]
+C com.sun.corba.se.impl.corba.AnyImpl->read_value [(Lorg/omg/CORBA/portable/InputStream;Lorg/omg/CORBA/TypeCode;)V] 
+
+# queue elements are not serializable
+C sun.net.www.http.KeepAliveStreamCleaner->run [()V]
+
+# lookup local activation service
+C java.rmi.activation.ActivationGroup::getSystem [()Ljava/rmi/activation/ActivationSystem;]
+
+# must already be a collection so the fromObject method is not reachable
+C net.sf.json.JSONArray->containsAll [(Ljava/util/Collection;)Z]
+
+# not serializable and otherwise requires a URL.openConnection
+C jcifs.smb.SmbFile->hashCode [()I]
+C jcifs.smb.SmbFile->equals [()Z]
+C jcifs.smb.SmbFile->toString [()Ljava/lang/String;]
+

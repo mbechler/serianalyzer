@@ -30,6 +30,6 @@ else
 fi
 
 echo "Running analysis"
-echo java -Xmx8G -cp "$MYJAR" eu.agno3.tools.serianalyzer.Main --whitelist $WHITELIST -d -o state $JRE $TARGETS
+echo java -Xmx8G -cp "$MYJAR" serianalyzer.Main --whitelist $WHITELIST -d -o state $JRE $TARGETS
 
-java -Xmx12G -cp "$MYJAR" eu.agno3.tools.serianalyzer.Main --whitelist $WHITELIST -o state $JRE $TARGETS 2>&1 | tee analyze.log
+java -Xmx12G -cp "$MYJAR" serianalyzer.Main --whitelist $WHITELIST -d -o state $JRE $TARGETS 2>&1 | tee analyze.log
