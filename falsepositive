@@ -563,6 +563,7 @@ C com.sun.corba.se.impl.io.ValueHandlerImpl->createOutputStream [()Lcom/sun/corb
 C com.sun.corba.se.impl.io.ValueHandlerImpl->createInputStream [()Lcom/sun/corba/se/impl/io/IIOPInputStream;]
 C sun.security.ssl.KerberosClientKeyExchange->createImpl [()Lsun/security/ssl/KerberosClientKeyExchange;]
 C java.security.Provider$Service->newInstance [(Ljava/lang/Object;)Ljava/lang/Object;]
+C org.apache.commons.httpclient.cookie.CookiePolicy::getCookieSpec [(Ljava/lang/String;)Lorg/apache/commons/httpclient/cookie/CookieSpec;]
 
 # Callables are all predefined
 C jdk.nashorn.api.scripting.ScriptObjectMirror->inGlobal [(Ljava/util/concurrent/Callable;)Ljava/lang/Object;]
@@ -758,8 +759,15 @@ C java.rmi.activation.ActivationGroup::getSystem [()Ljava/rmi/activation/Activat
 # must already be a collection so the fromObject method is not reachable
 C net.sf.json.JSONArray->containsAll [(Ljava/util/Collection;)Z]
 
+# toString on String
+C java.nio.charset.IllegalCharsetNameException-><init> [(Ljava/lang/String;)V]
+C java.nio.charset.UnsupportedCharsetException-><init> [(Ljava/lang/String;)V]
+
+C org.jvnet.localizer.Localizable->toString [()Ljava/lang/String;]
+
 # not serializable and otherwise requires a URL.openConnection
 C jcifs.smb.SmbFile->hashCode [()I]
 C jcifs.smb.SmbFile->equals [()Z]
 C jcifs.smb.SmbFile->toString [()Ljava/lang/String;]
 
+C groovy.inspect.swingui.CompilePhaseAdapter::<clinit> [()V]

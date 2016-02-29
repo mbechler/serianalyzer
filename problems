@@ -26,6 +26,9 @@ C org.apache.myfaces.view.facelets.el.ValueExpressionMethodExpression->getMethod
 C groovy.lang.MetaBeanProperty->setProperty [(Ljava/lang/Object;Ljava/lang/Object;)V]
 C groovy.lang.MetaBeanProperty->getProperty [(Ljava/lang/Object;Ljava/lang/Object;)V]
 
+# invoke all bean getters
+C net.sf.json.JSONObject::defaultBeanProcessing [(Ljava/lang/Object;Lnet/sf/json/JsonConfig;)Lnet/sf/json/JSONObject;]
+
 # The well known (original ysoserial)
 # Arbitrary calls, nice chaining capabilities 
 C org.apache.commons.collections4.functors.InvokerTransformer->transform [(Ljava/lang/Object;)Ljava/lang/Object;]
@@ -46,7 +49,8 @@ C org.codehaus.groovy.runtime.ConversionHandler->invoke [(Ljava/lang/Object;Ljav
 # Arbitrary method invocation (before 7u21)
 C sun.reflect.annotation.AnnotationInvocationHandler->equalsImpl [(Ljava/lang/Object;)Ljava/lang/Boolean;]
 
-
+# Remote class loading and instantiation
+C com.mchange.v2.naming.ReferenceIndirector$ReferenceSerialized->getObject [()Ljava/lang/Object;]
 
 # filter bypass
 
@@ -57,12 +61,10 @@ C sun.rmi.transport.LiveRef::read [(Ljava/io/ObjectInput;Z)Lsun/rmi/transport/Li
 # Starts a JRMP listener
 C java.rmi.server.UnicastRemoteObject->reexport [()V]
 
-# Resolve arbitrary JNDI object
-#C com.mchange.v2.naming.ReferenceIndirector$ReferenceSerialized->getObject [()Ljava/lang/Object;]
-
 # Lookup arbitrary (?) JNDI object 
 #C com.atomikos.icatch.jta.RemoteClientUserTransaction->checkSetup [()Z]
 #C com.atomikos.icatch.jta.RemoteClientUserTransaction->toString [()Ljava/lang/String;]
+
 # needs getter, cannot set context properties
 C com.sun.rowset.JdbcRowSetImpl->connect [()Ljava/sql/Connection;]
 
@@ -110,6 +112,6 @@ C org.eclipse.persistence.sdo.SDOResolvable->readExternal [(Ljava/io/ObjectInput
 
 # through zero arg method
 # exit VM
-com.sun.corba.se.impl.activation.ServerCallback->shutdown [()V]
+C com.sun.corba.se.impl.activation.ServerCallback->shutdown [()V]
 
  

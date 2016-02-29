@@ -354,7 +354,7 @@ public class SerianalyzerConfig {
      * @return the maximum numer of call traces to output per instance
      */
     public int getMaxDisplayDumps () {
-        return 5;
+        return 15;
     }
 
 

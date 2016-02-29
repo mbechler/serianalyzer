@@ -362,6 +362,10 @@ public class Serianalyzer {
                     continue;
                 }
 
+                if ( "<clinit>".equals(r.getMethod()) ) { //$NON-NLS-1$
+                    continue;
+                }
+
                 limit--;
 
                 for ( MethodReference elem : p ) {
