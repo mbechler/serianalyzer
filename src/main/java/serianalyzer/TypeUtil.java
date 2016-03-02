@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.jboss.jandex.ArrayType;
@@ -154,7 +155,14 @@ public final class TypeUtil {
      */
     static boolean implementsMethod ( MethodReference methodReference, ClassInfo impl ) {
         for ( MethodInfo i : impl.methods() ) {
+            if ( ( i.flags() & Modifier.ABSTRACT ) != 0 ) {
+                continue;
+            }
             if ( methodReference.getMethod().equals(i.name()) ) {
+                // ACC_VARARGS
+                if ( ( i.flags() & 0x80 ) != 0 ) {
+                    return true;
+                }
                 String sig2;
                 try {
                     sig2 = makeSignature(i, false);
@@ -162,7 +170,9 @@ public final class TypeUtil {
                         return true;
                     }
 
-                    log.trace("Signature mismatch " + methodReference.getSignature() + " vs " + sig2); //$NON-NLS-1$ //$NON-NLS-2$
+                    if ( log.isTraceEnabled() ) {
+                        log.trace("Signature mismatch " + methodReference.getSignature() + " vs " + sig2); //$NON-NLS-1$ //$NON-NLS-2$
+                    }
 
                     if ( "<init>".equals(methodReference.getMethod()) ) { //$NON-NLS-1$
                         sig2 = makeSignature(i, true);
@@ -177,6 +187,9 @@ public final class TypeUtil {
 
                 return true;
             }
+        }
+        if ( log.isTraceEnabled() ) {
+            log.trace("Not found in " + impl.name() + ": " + methodReference); //$NON-NLS-1$//$NON-NLS-2$
         }
         return false;
     }
@@ -193,50 +206,77 @@ public final class TypeUtil {
     static Collection<ClassInfo> findImplementors ( MethodReference methodReference, boolean ignoreNonFound, boolean fixedType,
             boolean serializableOnly, Benchmark bench, Index i ) {
         Collection<ClassInfo> impls;
+
+        if ( isFinalObjectMethod(methodReference) ) {
+            return Arrays.asList(i.getClassByName(DotName.createSimple("java.lang.Object"))); //$NON-NLS-1$
+        }
+
         DotName tn = methodReference.getTypeName();
-        if ( fixedType ) {
-            ClassInfo root = i.getClassByName(tn);
-            if ( root == null ) {
-                if ( ignoreNonFound ) {
-                    log.debug("Class not found " + methodReference.getTypeNameString()); //$NON-NLS-1$
-                }
-                else {
-                    log.error("Class not found " + methodReference.getTypeNameString()); //$NON-NLS-1$
-                }
-                return Collections.EMPTY_LIST;
+        ClassInfo classByName = i.getClassByName(tn);
+        if ( classByName == null ) {
+            if ( !ignoreNonFound ) {
+                log.error("Class not found " + tn); //$NON-NLS-1$
             }
-
-            ClassInfo cur = root;
-
-            while ( cur != null ) {
-                if ( TypeUtil.implementsMethod(methodReference, cur) ) {
-                    return Arrays.asList(cur);
-                }
-                cur = i.getClassByName(cur.superName());
+            else {
+                log.debug("Class not found " + tn); //$NON-NLS-1$
             }
-
-            cur = root;
-            while ( cur != null ) {
-                // seems we cannot really determine whether there is a default method
-                // probably jandex is missing a flag for this
-                log.debug("Looking for default impl in interfaces for " + root); //$NON-NLS-1$
-                List<ClassInfo> checkInterfaces = TypeUtil.checkInterfaces(i, methodReference, cur);
-                if ( checkInterfaces != null ) {
-                    return checkInterfaces;
-                }
-
-                cur = i.getClassByName(cur.superName());
-            }
-
-            log.error("No method implementor found for " + methodReference); //$NON-NLS-1$
             return Collections.EMPTY_LIST;
         }
-        else if ( methodReference.isInterface() ) {
-            Collection<ClassInfo> tmp = i.getAllKnownImplementors(tn);
+        short flags = classByName.flags();
+        boolean intf = Modifier.isInterface(flags);
+        boolean realFixedType = fixedType;
+        if ( fixedType && Modifier.isInterface(flags) || ( !methodReference.isStatic() && Modifier.isAbstract(flags) ) ) {
+            realFixedType = false;
+        }
+        if ( realFixedType ) {
+            impls = Arrays.asList(i.getClassByName(tn));
+            // ClassInfo root = i.getClassByName(tn);
+            // if ( root == null ) {
+            // if ( ignoreNonFound ) {
+            // log.debug("Class not found " + methodReference.getTypeNameString()); //$NON-NLS-1$
+            // }
+            // else {
+            // log.error("Class not found " + methodReference.getTypeNameString()); //$NON-NLS-1$
+            // }
+            // return Collections.EMPTY_LIST;
+            // }
+            //
+            // if ( ( root.flags() & Modifier.INTERFACE ) != 0 ) {
+            // log.error("Fixed type is an interface " + tn); //$NON-NLS-1$
+            // return Collections.EMPTY_LIST;
+            // }
+            //
+            // ClassInfo cur = root;
+            //
+            // while ( cur != null ) {
+            // if ( implementsMethod(methodReference, cur) ) {
+            // return Arrays.asList(root);
+            // }
+            // cur = i.getClassByName(cur.superName());
+            // }
+            //
+            // cur = root;
+            // while ( cur != null ) {
+            // // seems we cannot really determine whether there is a default method
+            // // probably jandex is missing a flag for this
+            // log.debug("Looking for default impl in interfaces for " + root); //$NON-NLS-1$
+            // List<ClassInfo> checkInterfaces = TypeUtil.checkInterfaces(i, methodReference, cur);
+            // if ( checkInterfaces != null ) {
+            // return Arrays.asList(root);
+            // }
+            //
+            // cur = i.getClassByName(cur.superName());
+            // }
+            //
+            // log.error("No method implementor found for " + methodReference); //$NON-NLS-1$
+            // return Collections.EMPTY_LIST;
+        }
+        else if ( intf ) {
+            Collection<ClassInfo> tmp = getAllImplementors(i, tn);
             if ( serializableOnly ) {
                 impls = new ArrayList<>();
                 for ( ClassInfo ci : tmp ) {
-                    if ( TypeUtil.implementsMethod(methodReference, ci) && TypeUtil.isSerializable(i, ci) ) {
+                    if ( isUsableMethod(methodReference, ci, i) && TypeUtil.isSerializable(i, ci) ) {
                         impls.add(ci);
                     }
                 }
@@ -245,7 +285,7 @@ public final class TypeUtil {
 
             impls = new ArrayList<>();
             for ( ClassInfo ci : tmp ) {
-                if ( TypeUtil.implementsMethod(methodReference, ci) ) {
+                if ( isUsableMethod(methodReference, ci, i) ) {
                     impls.add(ci);
                 }
             }
@@ -253,32 +293,90 @@ public final class TypeUtil {
             if ( bench != null ) {
                 bench.unboundedInterfaceCalls();
             }
-            return impls;
         }
         else {
-            ClassInfo classByName = i.getClassByName(tn);
-            if ( classByName == null ) {
-                if ( !ignoreNonFound ) {
-                    log.error("Class not found " + tn); //$NON-NLS-1$
-                }
-                else {
-                    log.debug("Class not found " + tn); //$NON-NLS-1$
-                }
-                return Collections.EMPTY_LIST;
-            }
-
             impls = new HashSet<>();
-            for ( ClassInfo ci : i.getAllKnownSubclasses(tn) ) {
-                if ( TypeUtil.implementsMethod(methodReference, ci) ) {
-                    impls.add(ci);
+
+            if ( !methodReference.isStatic() ) {
+                for ( ClassInfo ci : getSubclasses(i, tn) ) {
+                    if ( isUsableMethod(methodReference, ci, i) ) {
+                        impls.add(ci);
+                    }
                 }
             }
 
-            if ( TypeUtil.implementsMethod(methodReference, classByName) ) {
+            if ( isUsableMethod(methodReference, classByName, i) ) {
                 impls.add(classByName);
             }
-            return impls;
+
+            if ( impls.isEmpty() && !methodReference.isStatic() && !isObjectMethod(methodReference) ) {
+                // have not found any, still could be a default impl
+                List<ClassInfo> implIntfs = checkInterfaces(i, methodReference, classByName);
+                if ( implIntfs != null && implIntfs.size() == 1 ) {
+                    if ( log.isDebugEnabled() ) {
+                        log.debug("Adding default impl for " + methodReference); //$NON-NLS-1$
+                    }
+                    impls.add(classByName);
+                }
+                else if ( implIntfs != null && !implIntfs.isEmpty() ) {
+                    log.warn("Multiple default implementations found for " + methodReference); //$NON-NLS-1$
+                }
+            }
         }
+        return impls;
+    }
+
+
+    /**
+     * @param methodReference
+     * @param ci
+     * @param i
+     * @return
+     */
+    private static boolean isUsableMethod ( MethodReference methodReference, ClassInfo ci, Index i ) {
+        return !Modifier.isInterface(ci.flags()) && TypeUtil.implementsMethodRecursive(i, methodReference, ci)
+                && ( methodReference.isStatic() || !Modifier.isAbstract(ci.flags()) );
+    }
+
+
+    private static Set<ClassInfo> getAllImplementors ( Index i, DotName root ) {
+        return i.getAllKnownImplementors(root);
+    }
+
+
+    /**
+     * @param i
+     * @param tn
+     * @param subclassCache
+     * @return
+     */
+    private static Collection<ClassInfo> getSubclasses ( Index i, DotName tn ) {
+        return i.getAllKnownSubclasses(tn);
+    }
+
+
+    /**
+     * 
+     * @param i
+     * @param methodReference
+     * @param ci
+     * @return whether any superclass implements the method
+     */
+    public static boolean implementsMethodRecursive ( Index i, MethodReference methodReference, ClassInfo ci ) {
+        if ( implementsMethod(methodReference, ci) ) {
+            return true;
+        }
+
+        DotName superName = ci.superName();
+        if ( superName != null ) {
+            ClassInfo superByName = i.getClassByName(superName);
+            if ( superByName == null || "java.lang.Object".equals(superByName.name().toString()) ) { //$NON-NLS-1$
+                return false;
+            }
+
+            return implementsMethodRecursive(i, methodReference, superByName);
+        }
+        return false;
     }
 
 
@@ -557,5 +655,31 @@ public final class TypeUtil {
         }
 
         return null;
+    }
+
+
+    static boolean isFinalObjectMethod ( MethodReference methodReference ) {
+        if ( "getClass".equals(methodReference.getMethod()) && "()Ljava/lang/Class;".equals(methodReference.getSignature()) ) { //$NON-NLS-1$ //$NON-NLS-2$
+            return true;
+        }
+        return false;
+    }
+
+
+    /**
+     * @param methodReference
+     * @return
+     */
+    static boolean isObjectMethod ( MethodReference methodReference ) {
+        if ( isFinalObjectMethod(methodReference) ) {
+            return true;
+        }
+        else if ( "hashCode".equals(methodReference.getMethod()) && "()I".equals(methodReference.getSignature()) ) { //$NON-NLS-1$ //$NON-NLS-2$
+            return true;
+        }
+        else if ( "equals".equals(methodReference.getMethod()) && "(Ljava/lang/Object;)Z".equals(methodReference.getSignature()) ) { //$NON-NLS-1$//$NON-NLS-2$
+            return true;
+        }
+        return false;
     }
 }

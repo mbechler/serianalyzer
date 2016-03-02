@@ -140,6 +140,14 @@ public class Serianalyzer {
             dumpInstantiable(usedInstantiable);
         }
 
+        for ( MethodReference ref : this.state.getMethodCallers().keySet() ) {
+            Logger cl = Logger.getLogger(Serianalyzer.class.getName() + "." + ref.getTypeNameString() + "." + ref.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
+            if ( cl.isDebugEnabled() ) {
+                cl.debug(ref + " callers are " + this.state.getMethodCallers().get(ref)); //$NON-NLS-1$
+                cl.debug(ref + " callees are " + this.state.getMethodCallees().get(ref)); //$NON-NLS-1$
+            }
+        }
+
         this.state.getBench().dump();
 
         return nonWhitelist.size() > 0 || stPuts > 0;
@@ -912,21 +920,6 @@ public class Serianalyzer {
         this.state.trackKnown(methodReference);
         Collection<ClassInfo> impls = findImplementors(methodReference, fixedType, serializableOnly, true);
 
-        if ( impls.isEmpty() ) {
-            if ( log.isDebugEnabled() ) {
-                cl.debug("No implementations found for " + methodReference + //$NON-NLS-1$
-                        " fixed " + fixedType + //$NON-NLS-1$
-                        " serializable " + serializableOnly); //$NON-NLS-1$
-            }
-            ClassInfo classByName = this.getIndex().getClassByName(methodReference.getTypeName());
-            if ( classByName != null ) {
-                impls = Collections.singleton(classByName);
-            }
-            else if ( !this.getConfig().isIgnoreNonFound() ) {
-                log.warn("Class not found " + methodReference.getTypeNameString()); //$NON-NLS-1$
-            }
-        }
-
         if ( cl.isTraceEnabled() ) {
             Set<String> implNames = new HashSet<>();
             for ( ClassInfo classInfo : impls ) {
@@ -947,10 +940,12 @@ public class Serianalyzer {
             anyFound = true;
         }
 
-        if ( !anyFound && cl.isDebugEnabled() ) {
-            cl.debug("No usable implementation found for " + methodReference); //$NON-NLS-1$
+        if ( !anyFound ) {
+            cl.debug("No usable implementation found for " + methodReference + //$NON-NLS-1$
+                    " fixed " + fixedType + //$NON-NLS-1$
+                    " serializable " + serializableOnly); //$NON-NLS-1$
+            this.state.markSafe(methodReference);
         }
-
         return anyFound;
 
     }
@@ -1022,7 +1017,7 @@ public class Serianalyzer {
      */
     private void doCheckMethod ( MethodReference methodReference ) throws SerianalyzerException {
 
-        Logger cl = Logger.getLogger(Serianalyzer.class.getName() + "." + methodReference.getTypeNameString()); //$NON-NLS-1$
+        Logger cl = Logger.getLogger(Serianalyzer.class.getName() + "." + methodReference.getTypeNameString() + "." + methodReference.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
 
         if ( cl.isTraceEnabled() ) {
             cl.trace(String.format("Checking reference %s", methodReference)); //$NON-NLS-1$
@@ -1030,7 +1025,7 @@ public class Serianalyzer {
 
         long currentTimeMillis = System.currentTimeMillis();
         if ( currentTimeMillis - this.lastOutput > OUTPUT_EVERY ) {
-            log.info("Currently to check " + this.getState().getToCheck().size()); //$NON-NLS-1$
+            log.info("Currently to check " + this.getState().getToCheck().size() + " known " + this.getState().countAllKnown()); //$NON-NLS-1$ //$NON-NLS-2$
             log.info("Sample " + methodReference); //$NON-NLS-1$
             this.lastOutput = currentTimeMillis;
         }
@@ -1048,8 +1043,13 @@ public class Serianalyzer {
                 return;
             }
 
+            short flags = this.getIndex().getClassByName(methodReference.getTypeName()).flags();
+            if ( !methodReference.isStatic() && ( Modifier.isInterface(flags) || Modifier.isAbstract(flags) ) ) {
+                log.debug("Resolved an interface/abstract class in non static call " + methodReference); //$NON-NLS-1$
+            }
+
             ClassReader cr = new ClassReader(data);
-            SerianalyzerClassMethodVisitor visitor = new SerianalyzerClassMethodVisitor(this, methodReference, methodReference.getTypeNameString());
+            SerianalyzerClassMethodVisitor visitor = new SerianalyzerClassMethodVisitor(this, methodReference, methodReference.getTypeName());
             cr.accept(visitor, 0);
 
             Set<MethodReference> callers = this.state.getMethodCallers().get(methodReference.comparable());
@@ -1062,14 +1062,15 @@ public class Serianalyzer {
                 boolean found = doCheckInSuperClasses(methodReference, cl, callers);
 
                 if ( !found ) {
-                    log.debug("Method not found in superclasses " + methodReference); //$NON-NLS-1$
+                    cl.debug("Method not found in superclasses " + methodReference); //$NON-NLS-1$
+
+                    found = doCheckInInterfaces(methodReference, cl, callers);
+
+                    if ( !found && !methodReference.getTypeNameString().startsWith("java.lang.invoke.") ) { //$NON-NLS-1$
+                        cl.warn("Method not found " + methodReference); //$NON-NLS-1$
+                    }
                 }
 
-                found = doCheckInInterfaces(methodReference, cl, callers);
-
-                if ( !found ) {
-                    log.debug("Method not found " + methodReference); //$NON-NLS-1$
-                }
             }
         }
         catch ( IOException e ) {
@@ -1097,7 +1098,7 @@ public class Serianalyzer {
                 }
                 MethodReference intfRef = methodReference.adaptToType(checkInterfaces.get(0).name());
                 this.state.traceCalls(intfRef, callers);
-                doCheckClassInternal(cl, intfRef);
+                doCheckClassInternal(cl, methodReference, intfRef);
                 return true;
             }
 
@@ -1116,8 +1117,8 @@ public class Serianalyzer {
      */
     private boolean doCheckInSuperClasses ( MethodReference methodReference, Logger cl, Set<MethodReference> callers ) throws IOException {
         DotName dn = methodReference.getTypeName();
+        ClassInfo ci = this.input.getIndex().getClassByName(dn);
         do {
-            ClassInfo ci = this.input.getIndex().getClassByName(dn);
             if ( ci == null || "java.lang.Object".equals(dn.toString()) ) { //$NON-NLS-1$
                 break;
             }
@@ -1129,11 +1130,25 @@ public class Serianalyzer {
             else {
                 superName = ci.superName();
             }
-            MethodReference superRef = methodReference.adaptToType(superName);
 
-            if ( TypeUtil.implementsMethod(superRef, ci) ) {
+            if ( "java.lang.Object".equals(superName.toString()) && TypeUtil.isObjectMethod(methodReference) ) { //$NON-NLS-1$
+                return true;
+            }
+
+            ci = this.input.getIndex().getClassByName(superName);
+            if ( ci == null ) {
+                log.error("Failed to find super class " + superName); //$NON-NLS-1$
+                return false;
+            }
+
+            MethodReference superRef = methodReference.adaptToType(superName);
+            if ( TypeUtil.implementsMethod(methodReference, ci) && doCheckClassInternal(cl, methodReference, superRef) ) {
                 this.state.traceCalls(superRef, callers);
-                return doCheckClassInternal(cl, superRef);
+                return true;
+            }
+
+            if ( cl.isDebugEnabled() ) {
+                cl.debug("Failed to find in " + superName); //$NON-NLS-1$
             }
             dn = superName;
         }
@@ -1148,7 +1163,13 @@ public class Serianalyzer {
      * @return
      * @throws IOException
      */
-    private boolean doCheckClassInternal ( Logger cl, MethodReference superRef ) throws IOException {
+    private boolean doCheckClassInternal ( Logger cl, MethodReference ref, MethodReference superRef ) throws IOException {
+        // MethodReference scmp = superRef.comparable();
+        // Boolean cached = this.getState().getCheckedCache().get(scmp);
+        // if ( cached != null ) {
+        // return cached;
+        // }
+        boolean found = false;
         SerianalyzerClassMethodVisitor visitor;
         try ( InputStream superData = this.input.getClassData(superRef.getTypeNameString()) ) {
             if ( superData == null ) {
@@ -1156,16 +1177,16 @@ public class Serianalyzer {
                 return false;
             }
 
+            this.state.trackKnown(superRef);
             ClassReader sr = new ClassReader(superData);
-            visitor = new SerianalyzerClassMethodVisitor(this, superRef, superRef.getTypeNameString());
+            visitor = new SerianalyzerClassMethodVisitor(this, superRef, ref.getTypeName());
             sr.accept(visitor, 0);
             if ( visitor.isFound() ) {
-                return true;
+                found = true;
             }
-
         }
-
-        return false;
+        // this.getState().getCheckedCache().put(scmp, found);
+        return found;
     }
 
 
@@ -1213,7 +1234,7 @@ public class Serianalyzer {
 
         DotName overrideType = this.input.getConfig().getFixedType(ref);
         if ( overrideType != null ) {
-            fixedType = true;
+            fixedType = !ref.isInterface();
             ref = ref.adaptToType(overrideType);
         }
 
@@ -1232,7 +1253,9 @@ public class Serianalyzer {
         Collection<ClassInfo> impls = findImplementors(c, fixedType, serializableOnly, false);
 
         if ( impls.isEmpty() ) {
-            log.trace("No implementations found for " + c); //$NON-NLS-1$
+            if ( log.isDebugEnabled() ) {
+                log.debug("No implementations found for " + c); //$NON-NLS-1$
+            }
             return null;
         }
 

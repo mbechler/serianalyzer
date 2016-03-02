@@ -22,6 +22,7 @@ package serianalyzer;
 
 
 import org.apache.log4j.Logger;
+import org.jboss.jandex.DotName;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -35,29 +36,41 @@ public class SerianalyzerClassMethodVisitor extends ClassVisitor implements Seri
 
     private final Logger log;
 
-    private String clName;
     private Serianalyzer analyzer;
 
     private MethodReference ref;
 
     private boolean found;
 
+    private DotName actualType;
+
 
     /**
      * @param analyzer
      * @param ref
-     * @param clName
+     * @param actualType
      * 
      */
-    public SerianalyzerClassMethodVisitor ( Serianalyzer analyzer, MethodReference ref, String clName ) {
+    public SerianalyzerClassMethodVisitor ( Serianalyzer analyzer, MethodReference ref, DotName actualType ) {
         super(Opcodes.ASM5);
-        this.log = Logger.getLogger(Serianalyzer.class.getName() + "." + clName); //$NON-NLS-1$
+        this.actualType = actualType;
+        this.log = Logger.getLogger(Serianalyzer.class.getName() + "." + ref.getTypeNameString() + "." + ref.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
         this.analyzer = analyzer;
         this.ref = ref;
         if ( this.log.isTraceEnabled() ) {
             this.log.trace("Trying to find " + ref); //$NON-NLS-1$
         }
-        this.clName = clName;
+    }
+
+
+    /**
+     * {@inheritDoc}
+     *
+     * @see serianalyzer.SerianalyzerClassVisitorBase#getClassName()
+     */
+    @Override
+    public String getClassName () {
+        return this.actualType.toString();
     }
 
 
@@ -71,15 +84,6 @@ public class SerianalyzerClassMethodVisitor extends ClassVisitor implements Seri
 
 
     /**
-     * @return the clName
-     */
-    @Override
-    public String getClassName () {
-        return this.clName;
-    }
-
-
-    /**
      * {@inheritDoc}
      *
      * @see org.objectweb.asm.ClassVisitor#visitMethod(int, java.lang.String, java.lang.String, java.lang.String,
@@ -87,10 +91,9 @@ public class SerianalyzerClassMethodVisitor extends ClassVisitor implements Seri
      */
     @Override
     public MethodVisitor visitMethod ( int access, String name, String desc, String signature, String[] exceptions ) {
-
         if ( this.ref.getMethod().equals(name) && this.ref.getSignature().equals(desc) ) {
             if ( this.log.isTraceEnabled() ) {
-                this.log.trace(String.format("Found %s::%s with signature %s", this.clName, name, desc)); //$NON-NLS-1$
+                this.log.trace(String.format("Found %s::%s with signature %s", this.ref.getTypeNameString(), name, desc)); //$NON-NLS-1$
             }
             if ( ( access & Opcodes.ACC_ABSTRACT ) != 0 ) {
                 return super.visitMethod(access, name, desc, signature, exceptions);
@@ -101,7 +104,7 @@ public class SerianalyzerClassMethodVisitor extends ClassVisitor implements Seri
                 return super.visitMethod(access, name, desc, signature, exceptions);
             }
 
-            return new SerianalyzerMethodVisitor(this, this.ref);
+            return new SerianalyzerMethodVisitor(this, this.ref, this.actualType);
         }
 
         if ( this.log.isTraceEnabled() ) {

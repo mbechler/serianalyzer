@@ -121,6 +121,7 @@ N java.lang.ClassLoader->findLoadedClass0 [(Ljava/lang/String;)Ljava/lang/Class;
 C java.lang.reflect.Field->declaredAnnotations [()Ljava/util/Map;]
 C java.lang.reflect.Method->getDefaultValue [()Ljava/lang/Object;]
 
+
 N java.lang.Throwable->getStackTraceElement [(I)Ljava/lang/StackTraceElement;]
 N java.lang.Throwable->getStackTraceDepth [()I]
 N java.lang.Throwable->fillInStackTrace [(I)Ljava/lang/Throwable;]
@@ -128,6 +129,7 @@ N java.lang.Throwable->longBitsToDouble [(J)D]
 N java.lang.Throwable->doubleToRawLongBits [(D)J]
 N java.lang.Throwable->floatToRawIntBits [(F)I]
 N java.lang.Throwable->intBitsToFloat [(I)F]
+C java.lang.Throwable->getOurStackTrace [()[Ljava/lang/StackTraceElement;]
 
 N java.lang.String->intern [()Ljava/lang/String;]
 C java.lang.String::format [(Ljava/util/Locale;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;]
@@ -163,6 +165,7 @@ N java.lang.Thread::currentThread [()Ljava/lang/Thread;]
 N java.lang.Thread->isInterrupted [(Z)Z]
 N java.lang.Thread->isAlive [()Z]
 N java.lang.Thread::yield [()V]
+C java.lang.Thread->getStackTrace [()[Ljava/lang/StackTraceElement;]
 
 N java.lang.Object->hashCode [()I]
 N java.lang.Object->clone [()Ljava/lang/Object;]
@@ -251,6 +254,9 @@ N sun.misc.Unsafe->getObject [(Ljava/lang/Object;J)Ljava/lang/Object;]
 N sun.misc.Unsafe->arrayBaseOffset [(Ljava/lang/Class;)I] 
 N sun.misc.Unsafe->arrayIndexScale [(Ljava/lang/Class;)I] 
 
+N sun.misc.Unsafe->staticFieldOffset [(Ljava/lang/reflect/Field;)J]
+N sun.misc.Unsafe->staticFieldBase [(Ljava/lang/reflect/Field;)Ljava/lang/Object;]
+
 # The put whitelist should be better applied conditionally
 N sun.misc.Unsafe->putByte [(JB)V]
 N sun.misc.Unsafe->putBoolean [(Ljava/lang/Object;JZ)V]
@@ -330,6 +336,9 @@ S java.nio.Bits::unreserveMemory [(JI)V]
 S java.nio.Bits::pageSize [()I] 
 
 N com.sun.jna.Native::getLastError [()I]
+
+# Could be a DOS issue, but there are enough others
+C java.util.concurrent.locks.ReentrantLock->lock [()V]
 
 # File operations we consider okay
 C java.io.File->isDirectory [()Z] 

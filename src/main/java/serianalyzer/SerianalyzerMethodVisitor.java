@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.jboss.jandex.DotName;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -71,7 +72,7 @@ public class SerianalyzerMethodVisitor extends MethodVisitor {
      * @param api
      */
     @SuppressWarnings ( "javadoc" )
-    public SerianalyzerMethodVisitor ( SerianalyzerClassVisitorBase parent, MethodReference ref ) {
+    public SerianalyzerMethodVisitor ( SerianalyzerClassVisitorBase parent, MethodReference ref, DotName actualClass ) {
         super(Opcodes.ASM5);
 
         this.log = Logger.getLogger(serianalyzer.Serianalyzer.class.getName() + "." + ref.getTypeNameString() + "." + ref.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
@@ -92,7 +93,7 @@ public class SerianalyzerMethodVisitor extends MethodVisitor {
             if ( this.log.isDebugEnabled() ) {
                 this.log.debug("Adding this with type " + t); //$NON-NLS-1$
             }
-            this.stack.getVariable(i++).add(new FieldReference(ref.getTypeName(), "this", t, ref.isCalleeTainted(), true)); //$NON-NLS-1$
+            this.stack.getVariable(i++).add(new FieldReference(actualClass, "this", t, ref.isCalleeTainted(), true)); //$NON-NLS-1$
         }
         else if ( this.log.isDebugEnabled() ) {
             this.log.debug("Static call"); //$NON-NLS-1$
@@ -426,7 +427,6 @@ public class SerianalyzerMethodVisitor extends MethodVisitor {
                     }
                     fixedType = true;
                 }
-
                 if ( tgt instanceof SimpleType ) {
                     tgtType = ( (SimpleType) tgt ).getType();
                     tgtAltTypes = ( (SimpleType) tgt ).getAlternativeTypes();

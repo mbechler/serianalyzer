@@ -46,10 +46,14 @@ C org.springframework.core.SerializableTypeWrapper$MethodInvokeTypeProvider->get
 # the direct invoke there is not the actual root cause for this, but it's the shortest path (or maybe there is still some bug, groovy calls are quite complex)
 C org.codehaus.groovy.runtime.ConversionHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
 
+# Arbitrary method invocation
+C bsh.XThis$Handler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
+
+
 # Arbitrary method invocation (before 7u21)
 C sun.reflect.annotation.AnnotationInvocationHandler->equalsImpl [(Ljava/lang/Object;)Ljava/lang/Boolean;]
 
-# Remote class loading and instantiation
+# Remote class loading and instantiation, also JNDI lookup
 C com.mchange.v2.naming.ReferenceIndirector$ReferenceSerialized->getObject [()Ljava/lang/Object;]
 
 # filter bypass
@@ -61,11 +65,11 @@ C sun.rmi.transport.LiveRef::read [(Ljava/io/ObjectInput;Z)Lsun/rmi/transport/Li
 # Starts a JRMP listener
 C java.rmi.server.UnicastRemoteObject->reexport [()V]
 
-# Lookup arbitrary (?) JNDI object 
-#C com.atomikos.icatch.jta.RemoteClientUserTransaction->checkSetup [()Z]
-#C com.atomikos.icatch.jta.RemoteClientUserTransaction->toString [()Ljava/lang/String;]
+# Lookup arbitrary JNDI object, only if transaction manager not running 
+C com.atomikos.icatch.jta.RemoteClientUserTransaction->checkSetup [()Z]
+C com.atomikos.icatch.jta.RemoteClientUserTransaction->toString [()Ljava/lang/String;]
 
-# needs getter, cannot set context properties
+# JNDI lookup, needs getter, cannot set context properties
 C com.sun.rowset.JdbcRowSetImpl->connect [()Ljava/sql/Connection;]
 
 #
@@ -100,6 +104,7 @@ C org.hibernate.tuple.PojoInstantiator->instantiate [()Ljava/lang/Object;]
 C org.hibernate.type.TypeFactory->customCollection [(Ljava/lang/String;Ljava/util/Properties;Ljava/lang/String;Ljava/lang/String;)Lorg/hibernate/type/CollectionType;]
 # needs a getter invocation
 C javax.naming.spi.NamingManager::getInitialContext [(Ljava/util/Hashtable;)Ljavax/naming/Context;]
+C com.sun.org.apache.xml.internal.utils.ObjectPool->getInstance [()Ljava/lang/Object;]
 
 # this might be used to mess with the caching
 S org.apache.log4j.helpers.AbsoluteTimeDateFormat->format [(Ljava/util/Date;Ljava/lang/StringBuffer;Ljava/text/FieldPosition;)Ljava/lang/StringBuffer;]
@@ -114,4 +119,8 @@ C org.eclipse.persistence.sdo.SDOResolvable->readExternal [(Ljava/io/ObjectInput
 # exit VM
 C com.sun.corba.se.impl.activation.ServerCallback->shutdown [()V]
 
- 
+# via getter
+# activator is always replaced by reference, so only defined groups are available
+C java.rmi.activation.ActivationID->activate [(Z)Ljava/rmi/Remote;] 
+# this could be fun with custom content handlers
+C java.net.URL->getContent [()Ljava/lang/Object;]

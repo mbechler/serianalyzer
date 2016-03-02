@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -53,7 +54,7 @@ public class SerianalyzerConfig {
 
     private final Set<String> ignorePkg = new HashSet<>();
     private Set<String> instantiationFix = new HashSet<>();
-    private Set<String> nastyInterfaces = Collections.EMPTY_SET;
+    private Set<String> nastyInterfaces = new HashSet<>(Arrays.asList("java.util.Enumeration", "java.util.Iterator"));
     private boolean dumpInstantiationInfo;
 
     private File restoreFrom;
@@ -390,7 +391,7 @@ public class SerianalyzerConfig {
      * @return whether this method should be added to the initial set
      */
     public boolean isExtraCheckMethod ( MethodReference ref ) {
-        return false;
+        return isNoArgMethod(ref);
     }
 
 

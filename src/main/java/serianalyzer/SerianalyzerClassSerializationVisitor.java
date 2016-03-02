@@ -75,7 +75,7 @@ public class SerianalyzerClassSerializationVisitor extends ClassVisitor implemen
      */
     @Override
     public String getClassName () {
-        return this.clName;
+        return this.clName.toString();
     }
 
 
@@ -118,7 +118,7 @@ public class SerianalyzerClassSerializationVisitor extends ClassVisitor implemen
                 this.getAnalyzer().getState().addInitial(ref);
             }
 
-            return new SerianalyzerMethodVisitor(this, ref);
+            return new SerianalyzerMethodVisitor(this, ref, ref.getTypeName());
         }
         else if ( this.serializable ) {
             MethodReference ref = new MethodReference(this.clName, false, name, ( access & Modifier.STATIC ) != 0, desc);
@@ -135,7 +135,7 @@ public class SerianalyzerClassSerializationVisitor extends ClassVisitor implemen
             taintArguments(ref, name, desc, access);
             if ( this.analyzer.getConfig().isExtraCheckMethod(ref) ) {
                 this.getAnalyzer().getState().addInitial(ref);
-                return new SerianalyzerMethodVisitor(this, ref);
+                return new SerianalyzerMethodVisitor(this, ref, ref.getTypeName());
             }
 
         }

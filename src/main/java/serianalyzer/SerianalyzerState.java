@@ -65,6 +65,7 @@ public class SerianalyzerState implements Serializable {
     private transient Map<MethodReference, Type> returnTypes = new HashMap<>();
     private Set<MethodReference> staticPuts = new HashSet<>();
     private Benchmark bench = new Benchmark();
+    private transient Map<MethodReference, Boolean> checkedCache = new HashMap<>();
 
 
     /**
@@ -339,6 +340,12 @@ public class SerianalyzerState implements Serializable {
      */
     public void trackKnown ( MethodReference method ) {
         MethodReference cmp = method.comparable();
+
+        Logger cl = Logger.getLogger(Serianalyzer.class.getName() + "." + cmp.getTypeNameString() + "." + cmp.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
+        if ( cl.isDebugEnabled() ) {
+            cl.debug(String.format("Handled call to %s", cmp)); //$NON-NLS-1$
+        }
+
         Set<MethodReference> set = this.known.get(cmp);
 
         if ( set == null ) {
@@ -481,6 +488,22 @@ public class SerianalyzerState implements Serializable {
             cur = cur.maxTaint(methodReference);
         }
         return cur;
+    }
+
+
+    /**
+     * @return the checking cache
+     */
+    public Map<MethodReference, Boolean> getCheckedCache () {
+        return this.checkedCache;
+    }
+
+
+    /**
+     * @return all known method references
+     */
+    public int countAllKnown () {
+        return this.known.size();
     }
 
 }

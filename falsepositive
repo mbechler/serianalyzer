@@ -87,6 +87,7 @@ C java.lang.Class::getReflectionFactory [()Lsun/reflect/ReflectionFactory;]
 C java.security.ProtectionDomain->mergePermissions [()Ljava/security/PermissionCollection;]
 C sun.security.provider.SubjectCodeSource->toString [()Ljava/lang/String;] 
 C java.lang.UNIXProcess$Platform::get [()Ljava/lang/UNIXProcess$Platform;]
+C sun.reflect.annotation.AnnotationType-><init> [(Ljava/lang/Class;)V]
 
 
 # Uses logging. System.err, System.out
@@ -143,6 +144,8 @@ C sun.security.krb5.Config::checkRealm [(Ljava/lang/String;)Ljava/lang/String;]
 C sun.util.logging.PlatformLogger$DefaultLoggerProxy->doLog [(Lsun/util/logging/PlatformLogger$Level;Ljava/lang/String;)V]
 C sun.util.logging.PlatformLogger$DefaultLoggerProxy->doLog [(Lsun/util/logging/PlatformLogger$Level;Ljava/lang/String;[Ljava/lang/Object;)V]
 C jcifs.util.Hexdump::hexdump [(Ljava/io/PrintStream;[BII)V]
+C com.sun.org.apache.xalan.internal.xsltc.compiler.util.MethodGenerator$1->clone [()Ljava/lang/Object;]
+C com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl->fatalError [(Ljavax/xml/transform/TransformerException;)V] 
 
 # remote passthrou invocation, but the remote end always seems to be the calling endpoint
 C hudson.remoting.RemoteInvocationHandler->invoke [(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;]
@@ -166,6 +169,8 @@ C org.apache.commons.logging.impl.Jdk14Logger->log [(Ljava/util/logging/Level;Lj
 C jdk.nashorn.internal.runtime.logging.DebugLogger::instantiateLogger [(Ljava/lang/String;Ljava/util/logging/Level;)Ljava/util/logging/Logger;]
 C jdk.nashorn.internal.runtime.Context->getLogger [(Ljava/lang/Class;)Ljdk/nashorn/internal/runtime/logging/DebugLogger;]
 C org.apache.commons.logging.LogFactory::getLog [(Ljava/lang/Class;)Lorg/apache/commons/logging/Log;]
+C java.sql.SQLException-><init> [(Ljava/lang/String;)V]
+C java.sql.SQLException-><init> [()V]
 
 # load and instantiate arbitrary classes in sun.rmi.server + call RemoteRef.readExternal on them
 C java.rmi.server.RemoteObject->readObject [(Ljava/io/ObjectInputStream;)V]
@@ -357,6 +362,7 @@ C com.sun.naming.internal.ResourceManager$AppletParameter::get [(Ljava/lang/Obje
 C com.sun.corba.se.impl.io.IIOPOutputStream->invokeObjectWriter [(Lcom/sun/corba/se/impl/io/ObjectStreamClass;Ljava/lang/Object;)V]
 C javax.management.openmbean.OpenMBeanAttributeInfoSupport::convertFromString [(Ljava/lang/String;Ljavax/management/openmbean/OpenType;)Ljava/lang/Object;]
 C org.apache.commons.logging.impl.SimpleLog::getContextClassLoader [()Ljava/lang/ClassLoader;]
+C com.sun.org.apache.xpath.internal.XPathContext->getErrorListener [()Ljavax/xml/transform/ErrorListener;]
 
 # can be used only to call on itself
 C org.mozilla.javascript.ScriptableObject->getImpl [(Ljava/lang/String;ILorg/mozilla/javascript/Scriptable;)Ljava/lang/Object;]
@@ -391,7 +397,6 @@ C org.apache.commons.lang3.event.EventListenerSupport->createProxy [(Ljava/lang/
 # these just return their arguments, and cause type confusion 
 C java.util.Objects::requireNonNull [(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;]
 C java.util.Collections$CheckedCollection->typeCheck [(Ljava/lang/Object;)Ljava/lang/Object;]
-C java.lang.reflect.Method->copy [()Ljava/lang/reflect/Method;]
 C com.google.common.base.Preconditions::checkNotNull [(Ljava/lang/Object;)Ljava/lang/Object;]
 C com.unboundid.util.Validator::ensureNotNull [(Ljava/lang/Object;)V]
 C com.unboundid.util.Validator::ensureNotNull [(Ljava/lang/Object;Ljava/lang/Object;)V] 
@@ -440,6 +445,7 @@ C com.sun.org.apache.bcel.internal.generic.FieldGenOrMethodGen->clone [()Ljava/l
 C sun.rmi.server.Util::computeMethodHash [(Ljava/lang/reflect/Method;)J]
 C com.sun.deploy.xml.XMLNode->toString [(Z)Ljava/lang/String;]
 C sun.misc.CharacterEncoder->encodeBuffer [([B)Ljava/lang/String;]
+C sun.misc.CharacterEncoder->encode [([B)Ljava/lang/String;]
 C org.codehaus.groovy.control.MultipleCompilationErrorsException->getMessage [()Ljava/lang/String;]
 C groovy.lang.GString->toString [()Ljava/lang/String;]
 C org.codehaus.groovy.syntax.CSTNode->toString [()Ljava/lang/String;]
@@ -482,7 +488,9 @@ C com.mchange.lang.ThrowableUtils::extractStackTrace [(Ljava/lang/Throwable;)Lja
 C org.eclipse.persistence.sessions.DatasourceLogin->toString [()Ljava/lang/String;] 
 C com.sun.xml.internal.bind.v2.runtime.unmarshaller.Base64Data->get [()[B]
 C com.sun.xml.internal.org.jvnet.staxex.Base64Data->get [()[B]
-C sun.security.x509.X509CRLEntryImpl->getEncoded0 [()[B] 
+C sun.security.x509.X509CRLEntryImpl->getEncoded0 [()[B]
+C sun.security.x509.X509Key->getEncodedInternal [()[B] 
+C sun.security.pkcs.PKCS8Key->encode [()[B]
 C com.sun.xml.internal.ws.message.JAXBAttachment->asInputStream [()Ljava/io/InputStream;]
 C com.sun.xml.internal.messaging.saaj.soap.SOAPPartImpl->getContentAsStream [()Ljava/io/InputStream;]
 C java.security.UnresolvedPermission->readObject [(Ljava/io/ObjectInputStream;)V]
@@ -491,6 +499,7 @@ C java.io.ObjectStreamClass::computeDefaultSUID [(Ljava/lang/Class;)J]
 C org.hibernate.type.descriptor.java.BlobTypeDescriptor->toString [(Ljava/sql/Blob;)Ljava/lang/String;]
 C com.sun.org.apache.bcel.internal.classfile.JavaClass->getBytes [()[B]
 C sun.security.x509.RDN-><init> [(Ljava/lang/String;Ljava/util/Map;)V]
+C sun.misc.HexDumpEncoder->encodeBuffer [([B)Ljava/lang/String;]
 
 # Instantiates from a fixed/non-controlled set of classes
 C sun.security.x509.OtherName->equals [(Ljava/lang/Object;)Z]
@@ -564,6 +573,10 @@ C com.sun.corba.se.impl.io.ValueHandlerImpl->createInputStream [()Lcom/sun/corba
 C sun.security.ssl.KerberosClientKeyExchange->createImpl [()Lsun/security/ssl/KerberosClientKeyExchange;]
 C java.security.Provider$Service->newInstance [(Ljava/lang/Object;)Ljava/lang/Object;]
 C org.apache.commons.httpclient.cookie.CookiePolicy::getCookieSpec [(Ljava/lang/String;)Lorg/apache/commons/httpclient/cookie/CookieSpec;]
+C com.sun.org.apache.xml.internal.dtm.ref.DTMManagerDefault->getDTM [(Ljavax/xml/transform/Source;ZLcom/sun/org/apache/xml/internal/dtm/DTMWSFilter;ZZ)Lcom/sun/org/apache/xml/internal/dtm/DTM;]
+C sun.security.x509.X509Key::buildX509Key [(Lsun/security/x509/AlgorithmId;Lsun/security/util/BitArray;)Ljava/security/PublicKey;]
+C com.sun.org.apache.bcel.internal.generic.Instruction::readInstruction [(Lcom/sun/org/apache/bcel/internal/util/ByteSequence;)Lcom/sun/org/apache/bcel/internal/generic/Instruction;]
+C sun.security.x509.CRLExtensions->parseExtension [(Lsun/security/x509/Extension;)V]
 
 # Callables are all predefined
 C jdk.nashorn.api.scripting.ScriptObjectMirror->inGlobal [(Ljava/util/concurrent/Callable;)Ljava/lang/Object;]
@@ -657,15 +670,23 @@ C com.sun.corba.se.impl.presentation.rmi.StubFactoryStaticImpl->makeStub [()Lorg
 C com.sun.deploy.security.BasicPermissionCollection->readObject [(Ljava/io/ObjectInputStream;)V]
 C java.net.Inet6Address::deriveNumericScope [([BLjava/net/NetworkInterface;)I]
 C java.security.BasicPermissionCollection->readObject [(Ljava/io/ObjectInputStream;)V]
+C javax.naming.NameImpl->hashCode [()I]
+C javax.naming.directory.BasicAttribute->toString [()Ljava/lang/String;]
+C com.sun.org.apache.bcel.internal.generic.MethodGen->toString [()Ljava/lang/String;]
+C com.sun.xml.internal.messaging.saaj.soap.impl.ElementImpl->findChild [(Lcom/sun/xml/internal/messaging/saaj/soap/name/NameImpl;)Ljavax/xml/soap/SOAPElement;] 
 # iteration on self
 C java.util.AbstractList->hashCode [()I]
 C java.util.WeakHashMap$EntrySet->deepCopy [()Ljava/util/List;]
+C java.util.concurrent.ConcurrentHashMap$KeySetView->hashCode [()I] 
 
 # only allows deserialization of Tokens previously serialized in the same VM
+C sun.security.pkcs11.P11Key->fetchAttributes [([Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;)V]
+C sun.security.pkcs11.Token->releaseSession [(Lsun/security/pkcs11/Session;)Lsun/security/pkcs11/Session;]
+C sun.security.pkcs11.P11Key$P11SecretKey->getEncodedInternal [()[B] 
+C sun.security.pkcs11.P11Key$P11TlsMasterSecretKey->getEncodedInternal [()[B] 
 C sun.security.pkcs11.P11Key->hashCode [()I]
 C sun.security.pkcs11.P11Key->equals [(Ljava/lang/Object;)Z]
 C sun.security.pkcs11.P11Key->getEncoded [()[B]
-C sun.security.pkcs11.P11Key$P11SecretKey->getEncodedInternal [()[B]
 C sun.security.pkcs11.Session->id [()J]
 C sun.security.pkcs11.Token->getTokenId [()[B]
 C sun.security.pkcs11.Token->getOpSession [()Lsun/security/pkcs11/Session;]
@@ -741,6 +762,9 @@ C org.springframework.core.annotation.AnnotationUtils::synthesizeAnnotation [(Lj
 # load class resource from classloader
 C com.sun.xml.internal.bind.util.Which::which [(Ljava/lang/Class;)Ljava/lang/String;]
 
+# many FPs and very unlikely to be actually reachable
+C java.util.ServiceLoader$LazyIterator->next [()Ljava/lang/Object;]
+
 # XMLStreamBuffer
 C com.sun.xml.internal.ws.message.jaxb.JAXBMessage::create [(Lcom/sun/xml/internal/ws/spi/db/BindingContext;Ljava/lang/Object;Lcom/sun/xml/internal/ws/api/SOAPVersion;Lcom/sun/xml/internal/ws/api/message/MessageHeaders;Lcom/sun/xml/internal/ws/api/message/AttachmentSet;)Lcom/sun/xml/internal/ws/api/message/Message;]
 
@@ -769,5 +793,12 @@ C org.jvnet.localizer.Localizable->toString [()Ljava/lang/String;]
 C jcifs.smb.SmbFile->hashCode [()I]
 C jcifs.smb.SmbFile->equals [()Z]
 C jcifs.smb.SmbFile->toString [()Ljava/lang/String;]
+
+# file is transient
+C com.sun.corba.se.impl.naming.pcosnaming.CounterDB->writeCounter [()V] 
+
+
+# sources not serializable
+C com.sun.xml.internal.messaging.saaj.soap.SOAPPartImpl->lookForXmlDecl [()Lcom/sun/xml/internal/messaging/saaj/util/XMLDeclarationParser;]
 
 C groovy.inspect.swingui.CompilePhaseAdapter::<clinit> [()V]
