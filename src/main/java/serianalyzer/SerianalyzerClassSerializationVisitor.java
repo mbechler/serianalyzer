@@ -179,7 +179,12 @@ public class SerianalyzerClassSerializationVisitor extends ClassVisitor implemen
      * @return
      */
     private boolean isReachableMethod ( String name, String signature, int access ) {
-        return ( this.serializable && "readObject".equals(name) && "(Ljava/io/ObjectInputStream;)V".equals(signature) ) || //$NON-NLS-1$ //$NON-NLS-2$
+        return ( this.serializable && "toString".equals(name) )|| 
+        		( this.serializable && "hashCode".equals(name) ) ||
+        		( this.serializable && "equals".equals(name) ) ||
+        		( this.serializable && "compareTo".equals(name) ) ||
+        		( this.serializable && "readResolve".equals(name) ) ||
+        		( this.serializable && "readObject".equals(name) && "(Ljava/io/ObjectInputStream;)V".equals(signature) ) || //$NON-NLS-1$ //$NON-NLS-2$
                 ( this.serializable && "readExternal".equals(name) && "(Ljava/io/ObjectInput;)V".equals(signature) ) || //$NON-NLS-1$ //$NON-NLS-2$
                 ( this.serializable && "readObjectNoData".equals(name) && "()V".equals(signature) ) || //$NON-NLS-1$ //$NON-NLS-2$
                 ( this.serializable && "invoke".equals(name) //$NON-NLS-1$

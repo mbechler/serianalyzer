@@ -932,12 +932,14 @@ public class Serianalyzer {
 
         boolean anyFound = false;
         for ( ClassInfo impl : impls ) {
-            MethodReference e = methodReference.adaptToType(impl.name());
-            TypeUtil.checkReferenceTyping(this.input.getIndex(), this.input.getConfig().isIgnoreNonFound(), e);
-            this.state.traceCalls(e, cal);
-            this.state.trackKnown(e);
-            this.state.getToCheck().add(e);
-            anyFound = true;
+        	if ( methodReference != null && impl != null ) { 
+	            MethodReference e = methodReference.adaptToType(impl.name());
+	            TypeUtil.checkReferenceTyping(this.input.getIndex(), this.input.getConfig().isIgnoreNonFound(), e);
+	            this.state.traceCalls(e, cal);
+	            this.state.trackKnown(e);
+	            this.state.getToCheck().add(e);
+	            anyFound = true;
+        	}
         }
 
         if ( !anyFound ) {
@@ -1298,28 +1300,30 @@ public class Serianalyzer {
 
         boolean allFound = true;
         for ( ClassInfo impl : impls ) {
-            boolean found = TypeUtil.implementsMethod(c, impl);
-            if ( !found ) {
-                continue;
-            }
-
-            MethodReference e = c.adaptToType(impl.name());
-            try {
-                if ( !this.state.getCheckedReturnType().contains(e) ) {
-                    this.state.getCheckedReturnType().add(e);
-                    doCheckMethod(e);
-                    Type type = this.state.getReturnTypes().get(e);
-                    if ( type != null ) {
-                        implTypes.add(type);
-                    }
-                    else {
-                        return false;
-                    }
-                }
-            }
-            catch ( SerianalyzerException e1 ) {
-                log.warn("Failed to check method", e1); //$NON-NLS-1$
-            }
+        	if ( impl != null ) { 
+	            boolean found = TypeUtil.implementsMethod(c, impl);
+	            if ( !found ) {
+	                continue;
+	            }
+	
+	            MethodReference e = c.adaptToType(impl.name());
+	            try {
+	                if ( !this.state.getCheckedReturnType().contains(e) ) {
+	                    this.state.getCheckedReturnType().add(e);
+	                    doCheckMethod(e);
+	                    Type type = this.state.getReturnTypes().get(e);
+	                    if ( type != null ) {
+	                        implTypes.add(type);
+	                    }
+	                    else {
+	                        return false;
+	                    }
+	                }
+	            }
+	            catch ( SerianalyzerException e1 ) {
+	                log.warn("Failed to check method", e1); //$NON-NLS-1$
+	            }
+        	}
         }
         return allFound;
     }

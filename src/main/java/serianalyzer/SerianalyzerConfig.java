@@ -355,7 +355,7 @@ public class SerianalyzerConfig {
      * @return the maximum numer of call traces to output per instance
      */
     public int getMaxDisplayDumps () {
-        return 15;
+        return 50;
     }
 
 
@@ -391,7 +391,8 @@ public class SerianalyzerConfig {
      * @return whether this method should be added to the initial set
      */
     public boolean isExtraCheckMethod ( MethodReference ref ) {
-        return isNoArgMethod(ref);
+    	return false;
+        //return isNoArgMethod(ref);
     }
 
 
@@ -411,5 +412,21 @@ public class SerianalyzerConfig {
     public boolean isDumpPrivileged () {
         return false;
     }
+
+
+	public boolean isEvil(MethodReference ref) {
+		if ( ( ref.getTypeNameString().equals( "java.io.File" ) && ref.getMethod().equals( "delete" ) ) || 
+				( ref.getTypeNameString().equals( "javax.naming.InitialContext" ) && ref.getMethod().equals( "lookup" ) ) ||
+				( ref.getTypeNameString().equals( "java.lang.reflect.Method" ) && ref.getMethod().equals( "invoke" ) ) ||
+				( ref.getTypeNameString().equals( "java.lang.reflect.Method" ) && ref.getMethod().equals( "invoke" ) ) ||
+				( ref.getTypeNameString().equals( "sun.rmi.transport.tcp.TCPTransport" ) && ref.getMethod().equals( "listen" ) ) ||
+				( ref.getTypeNameString().endsWith( ".TemplatesImpl" ) && ref.getMethod().equals( "newTransformer" ) ) ||
+				ref.getMethod().equals( "halt" ) ) {
+			System.err.println( "Found evil method " + String.format( "%s->%s %s", ref.getTypeNameString(), ref.getMethod(), ref.getSignature() ) );
+			return true;
+		}
+		
+		return false;
+	}
 
 }

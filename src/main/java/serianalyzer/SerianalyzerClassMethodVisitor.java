@@ -103,6 +103,11 @@ public class SerianalyzerClassMethodVisitor extends ClassVisitor implements Seri
                 this.analyzer.getState().nativeCall(this.ref);
                 return super.visitMethod(access, name, desc, signature, exceptions);
             }
+            
+            if ( this.analyzer.getConfig().isEvil(this.ref) ) {
+            	this.analyzer.getState().nativeCall(this.ref);
+                return super.visitMethod(access, name, desc, signature, exceptions);
+            }
 
             return new SerianalyzerMethodVisitor(this, this.ref, this.actualType);
         }
