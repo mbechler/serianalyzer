@@ -43,8 +43,9 @@ public class Main {
 
     /**
      * @param args
+     * @throws InterruptedException 
      */
-    public static void main ( String[] args ) {
+    public static void main ( String[] args ) throws InterruptedException {
         long start = System.currentTimeMillis();
 
         List<String> remainArgs = new ArrayList<>();
@@ -80,6 +81,7 @@ public class Main {
             res = analyzer.analyze();
         }
         catch ( SerianalyzerException e ) {
+        	e.printStackTrace();
             log.error("Failed to perform analysis", e); //$NON-NLS-1$
         }
 
@@ -99,6 +101,8 @@ public class Main {
      */
     private static SerianalyzerConfig configure ( String[] args, List<String> remainArgs ) {
 
+    	System.err.println( "Configuring serianalyzer" );
+    	
         List<String> whitelistArgs = new ArrayList<>();
         boolean noHeuristics = false;
         boolean dumpInstantiation = false;
@@ -108,6 +112,8 @@ public class Main {
         int i = 0;
         for ( ; i < args.length; i++ ) {
             String arg = args[ i ];
+            System.err.println( "Argument = " + arg );
+            
             if ( "-w".equals(arg) || "--whitelist".equals(arg) ) { //$NON-NLS-1$ //$NON-NLS-2$
                 whitelistArgs.addAll(Arrays.asList(args[ ++i ].split(","))); //$NON-NLS-1$
             }

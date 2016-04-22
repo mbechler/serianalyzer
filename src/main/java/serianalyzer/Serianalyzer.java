@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -40,6 +41,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
 import org.jboss.jandex.ClassInfo;
@@ -47,6 +50,8 @@ import org.jboss.jandex.DotName;
 import org.jboss.jandex.Index;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Type;
+
+import serianalyzer.SerianalyzerState.Stage;
 
 
 /**
@@ -61,6 +66,7 @@ public class Serianalyzer {
 
     private SerianalyzerInput input;
     private SerianalyzerState state;
+    private AtomicBoolean stopped;
 
     private Map<String, Boolean> serializableCache = new HashMap<>();
 
@@ -73,15 +79,17 @@ public class Serianalyzer {
     public Serianalyzer ( SerianalyzerInput input ) {
         this.input = input;
         this.state = new SerianalyzerState();
+        this.stopped = new AtomicBoolean( false );
     }
 
 
     /**
      * @return whether any bad instances were found
      * @throws SerianalyzerException
+     * @throws InterruptedException 
      * 
      */
-    public boolean analyze () throws SerianalyzerException {
+    public boolean analyze () throws SerianalyzerException, InterruptedException {
         return restoreOrRunAnalysis();
     }
 
@@ -89,23 +97,32 @@ public class Serianalyzer {
     /**
      * @return
      * @throws SerianalyzerException
+     * @throws InterruptedException 
      * 
      */
-    private boolean restoreOrRunAnalysis () throws SerianalyzerException {
-        boolean foundAny;
-        if ( this.input.getConfig().getRestoreFrom() != null ) {
+    private boolean restoreOrRunAnalysis () throws SerianalyzerException, InterruptedException {
+        boolean foundAny = false;
+        
+        if ( this.input.getConfig().getRestoreFrom() != null && this.input.getConfig().getRestoreFrom().exists() ) {
+        	System.err.println( "Restoring state" );
             restore();
-            foundAny = filterAndDump();
-            save();
+            System.err.println( "Restored to stage: " + this.getState().getStage() );
+            runAnalysis();
+            if ( !stopped.get() ) { 
+	            foundAny = filterAndDump();
+	            save();
+            }
         }
         else {
             this.lastOutput = System.currentTimeMillis();
             runAnalysis();
-            save();
-            log.info(String.format("Found a total %d method calls reachable", this.state.getTotalKnownCount())); //$NON-NLS-1$
-            log.info(String.format("Found a total %d native method initially reachable", this.state.getNativeMethods().size())); //$NON-NLS-1$
-            log.info(String.format("Found a total %d safe methods", this.state.getSafe().size())); //$NON-NLS-1$
-            foundAny = filterAndDump();
+            if ( !stopped.get() ) { 
+	            save();
+	            log.info(String.format("Found a total %d method calls reachable", this.state.getTotalKnownCount())); //$NON-NLS-1$
+	            log.info(String.format("Found a total %d native method initially reachable", this.state.getNativeMethods().size())); //$NON-NLS-1$
+	            log.info(String.format("Found a total %d safe methods", this.state.getSafe().size())); //$NON-NLS-1$
+	            foundAny = filterAndDump();
+            }
         }
         return foundAny;
     }
@@ -158,7 +175,7 @@ public class Serianalyzer {
      * @param saveTo
      * @throws SerianalyzerException
      */
-    private void save () throws SerianalyzerException {
+    public void save () throws SerianalyzerException {
         if ( this.input.getConfig().getSaveTo() != null ) {
             log.info("Saving state"); //$NON-NLS-1$
             try ( FileOutputStream fos = new FileOutputStream(this.input.getConfig().getSaveTo());
@@ -187,6 +204,7 @@ public class Serianalyzer {
             catch (
                 IOException |
                 ClassNotFoundException e ) {
+            	e.printStackTrace();
                 throw new SerianalyzerException("Failed to restore state", e); //$NON-NLS-1$
             }
             log.info("Loaded state"); //$NON-NLS-1$
@@ -196,24 +214,93 @@ public class Serianalyzer {
 
     /**
      * @throws SerianalyzerException
+     * @throws InterruptedException 
      */
-    private void runAnalysis () throws SerianalyzerException {
-        Set<ClassInfo> serializable = this.input.getIndex().getAllKnownImplementors(DotName.createSimple(Serializable.class.getName()));
-        log.info(String.format("Found %d serializable classes", serializable.size())); //$NON-NLS-1$
+    private void runAnalysis () throws SerianalyzerException, InterruptedException {
+    	if ( this.getState().getStage().equals( Stage.CHECK_CLASS ) ) { 
+	    	long time = System.currentTimeMillis();
+	    	
+	        Set<ClassInfo> serializable = this.input.getIndex().getAllKnownImplementors(DotName.createSimple(Serializable.class.getName()));
+	        System.err.println(String.format("Found %d serializable classes", serializable.size())); //$NON-NLS-1$
+	        	
+	        int count = 0;
+	        for ( ClassInfo ci : serializable ) {
+	        	count++;
+	        	
+	        	if ( ( count % 100 ) == 0 ) {
+	        		System.err.println( "****** Checking class " + count + " of " + serializable.size() );
+	        	}
+	        	
+	            if ( this.input.getConfig().isWhitelistedClass(ci.name().toString()) ) {
+	                continue;
+	            }
+	            checkClass(ci);
+	        }
+	        System.err.println( "****** DONE checking serializable classes, elapsed time = " + ( System.currentTimeMillis() - time ) / 1000 );
 
-        for ( ClassInfo ci : serializable ) {
-            if ( this.input.getConfig().isWhitelistedClass(ci.name().toString()) ) {
-                continue;
-            }
-            checkClass(ci);
-        }
+	        this.getState().setStage( Stage.CHECK_METHOD );
+	        System.err.println( "Saving state..." );
+	        save();
+	        System.err.println( "Saved successfully!" );
+    	} else {
+    		System.err.println( "****** Skipping serializable class checking, restoring from saved state" );
+    	}
+    	
+    	System.err.println( "Proceeding to check method calls (this will take a long time)" );
 
-        log.info(String.format("Found %d initial methods to check", this.state.getToCheck().size())); //$NON-NLS-1$
-
-        while ( !this.state.getToCheck().isEmpty() ) {
-            MethodReference method = this.state.getToCheck().poll();
-            this.state.trackKnown(method);
-            doCheckMethod(method);
+        if ( this.getState().getStage().equals( Stage.CHECK_METHOD ) ) { 
+        	        	
+        	Thread saveHook = new Thread() {
+    			public void run() { 
+    				try {
+    					stopped.set( true );
+    					System.err.println( "Interrupt: Pausing to let other threads finish..." );
+    					Thread.sleep( 100L );
+    					System.err.println( "Interrupt: Saving progress..." );
+						save();
+					} catch (SerianalyzerException e) {
+						e.printStackTrace();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+    			}
+    		};
+        	
+        	Runtime.getRuntime().addShutdownHook(
+        			saveHook
+        	);
+	
+	        System.err.println(String.format("****** Found %d initial methods to check", this.state.getToCheck().size())); //$NON-NLS-1$        
+	
+	        long time = System.currentTimeMillis() + (1000 * 20);
+	        
+	        long startTime = System.currentTimeMillis();
+	        long entryCount = 0L;
+	        while ( !stopped.get() && !this.state.getToCheck().isEmpty() ) {
+	        	if ( System.currentTimeMillis() > time ) {
+	        		System.err.println( new Date().toString() + "\t" + this.state.getToCheck().size() + " entries remaining\t" + entryCount + " entries processed" );
+	        		long totalElapsedSecs = 1 + (System.currentTimeMillis() - startTime) / 1000;
+	        		long rate = entryCount / totalElapsedSecs;
+	        		System.err.println( "\tAverage rate: " + rate + " per second" );
+	        		long minutesLeft = (this.state.getToCheck().size() / rate) / 60;	        		
+	        		System.err.println( "\tProjected completion time: " + minutesLeft + " minutes" );
+	        		time = System.currentTimeMillis() + (1000 * 20);
+	        	}
+	        	
+	            MethodReference method = this.state.getToCheck().poll();
+	            this.state.trackKnown(method);
+	            doCheckMethod(method);
+	        	entryCount++;
+	        }
+	        
+	        if ( stopped.get() ) {
+	        	throw new InterruptedException( "Stopped by runtime shutdown hook" );
+	        }
+	        
+	        Runtime.getRuntime().removeShutdownHook( saveHook );
+	        
+	        this.getState().setStage( Stage.ANALYSIS_COMPLETE );
         }
     }
 

@@ -45,6 +45,16 @@ import org.objectweb.asm.Type;
  */
 public class SerianalyzerState implements Serializable {
 
+	enum Stage {
+		
+		CHECK_CLASS,
+		CHECK_METHOD,
+		ANALYSIS_COMPLETE
+		
+	}
+	
+	private Stage stage = Stage.CHECK_CLASS;
+	
     /**
      * 
      */
@@ -79,6 +89,14 @@ public class SerianalyzerState implements Serializable {
      */
     public Benchmark getBench () {
         return this.bench;
+    }
+    
+    public Stage getStage() {
+    	return this.stage;
+    }
+    
+    public void setStage( Stage stage ) {
+    	this.stage = stage;
     }
 
 
@@ -295,9 +313,11 @@ public class SerianalyzerState implements Serializable {
      * @param ref
      */
     void addInitial ( MethodReference ref ) {
+    	/*
     	if ( !initial.contains( ref.comparable() ) ) {
     		System.err.println( "Initial method found: " + String.format( "%s->%s %s", ref.getTypeNameString(), ref.getMethod(), ref.getSignature() ) );
     	}
+    	*/
     	
         this.initial.add(ref.comparable());
     }
