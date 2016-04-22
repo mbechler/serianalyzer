@@ -49,11 +49,14 @@ Usage: serianalyzer.Main [-w|--whitelist <whitelist>] [-i|-o <file>] [-n] [-d] <
     -d      Dump instantiation details
     -i      Read analyzed state
     -o      Write analyzed state
+    -v      Print out verbose output, including progress and timing info (will also be logged regardless)
 ```
 
-Giving -i and -o at the same time performs another filtering round using the whilelist.
+Giving -i and -o at the same time performs another filtering round using the whilelist. Note that loading a large state file will take a long time.
 
 Don't forget to raise your java heap limit if scanning large classpaths. 
+
+New: If you Ctrl+C in the middle of the process, Serianalyzer will attempt to save its state to resume later. This can take a long time (ten minutes or so for a large classpath), so you can press Ctrl+C again to stop it.
 
 ## Modes of operation
 
