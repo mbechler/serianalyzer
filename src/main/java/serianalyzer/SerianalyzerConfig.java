@@ -422,7 +422,7 @@ public class SerianalyzerConfig {
 				( ref.getTypeNameString().equals( "sun.rmi.transport.tcp.TCPTransport" ) && ref.getMethod().equals( "listen" ) ) ||
 				( ref.getTypeNameString().endsWith( ".TemplatesImpl" ) && ref.getMethod().equals( "newTransformer" ) ) ||
 				ref.getMethod().equals( "halt" ) ) {
-			System.err.println( "Found evil method " + String.format( "%s->%s %s", ref.getTypeNameString(), ref.getMethod(), ref.getSignature() ) );
+			Verbose.println( "Found evil method " + String.format( "%s->%s %s", ref.getTypeNameString(), ref.getMethod(), ref.getSignature() ) );
 			return true;
 		}
 		

@@ -100,8 +100,6 @@ public class Main {
      * @return
      */
     private static SerianalyzerConfig configure ( String[] args, List<String> remainArgs ) {
-
-    	System.err.println( "Configuring serianalyzer" );
     	
         List<String> whitelistArgs = new ArrayList<>();
         boolean noHeuristics = false;
@@ -111,9 +109,7 @@ public class Main {
 
         int i = 0;
         for ( ; i < args.length; i++ ) {
-            String arg = args[ i ];
-            System.err.println( "Argument = " + arg );
-            
+            String arg = args[ i ];            
             if ( "-w".equals(arg) || "--whitelist".equals(arg) ) { //$NON-NLS-1$ //$NON-NLS-2$
                 whitelistArgs.addAll(Arrays.asList(args[ ++i ].split(","))); //$NON-NLS-1$
             }
@@ -130,6 +126,8 @@ public class Main {
             else if ( "-o".equals(arg) || "--output".equals(arg) ) { //$NON-NLS-1$ //$NON-NLS-2$
                 i++;
                 saveFile = new File(args[ i ]);
+            } else if ( "-v".equals(arg) || "--verbose".equals(arg) ) { 
+            	Verbose.VERBOSE = true;
             }
             else {
                 break;

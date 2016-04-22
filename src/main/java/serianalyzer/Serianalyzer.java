@@ -104,9 +104,9 @@ public class Serianalyzer {
         boolean foundAny = false;
         
         if ( this.input.getConfig().getRestoreFrom() != null && this.input.getConfig().getRestoreFrom().exists() ) {
-        	System.err.println( "Restoring state" );
+        	Verbose.println( "Restoring state" );
             restore();
-            System.err.println( "Restored to stage: " + this.getState().getStage() );
+            Verbose.println( "Restored to stage: " + this.getState().getStage() );
             runAnalysis();
             if ( !stopped.get() ) { 
 	            foundAny = filterAndDump();
@@ -221,14 +221,14 @@ public class Serianalyzer {
 	    	long time = System.currentTimeMillis();
 	    	
 	        Set<ClassInfo> serializable = this.input.getIndex().getAllKnownImplementors(DotName.createSimple(Serializable.class.getName()));
-	        System.err.println(String.format("Found %d serializable classes", serializable.size())); //$NON-NLS-1$
+	        Verbose.println(String.format("Found %d serializable classes", serializable.size())); //$NON-NLS-1$
 	        	
 	        int count = 0;
 	        for ( ClassInfo ci : serializable ) {
 	        	count++;
 	        	
 	        	if ( ( count % 100 ) == 0 ) {
-	        		System.err.println( "****** Checking class " + count + " of " + serializable.size() );
+	        		Verbose.println( "Checking class " + count + " of " + serializable.size() );
 	        	}
 	        	
 	            if ( this.input.getConfig().isWhitelistedClass(ci.name().toString()) ) {
@@ -236,17 +236,17 @@ public class Serianalyzer {
 	            }
 	            checkClass(ci);
 	        }
-	        System.err.println( "****** DONE checking serializable classes, elapsed time = " + ( System.currentTimeMillis() - time ) / 1000 );
+	        Verbose.println( "DONE checking serializable classes, elapsed time = " + ( System.currentTimeMillis() - time ) / 1000 );
 
 	        this.getState().setStage( Stage.CHECK_METHOD );
-	        System.err.println( "Saving state..." );
+	        Verbose.println( "Saving intermediary state..." );
 	        save();
-	        System.err.println( "Saved successfully!" );
+	        Verbose.println( "Saved successfully!" );
     	} else {
-    		System.err.println( "****** Skipping serializable class checking, restoring from saved state" );
+    		Verbose.println( "Skipping serializable class checking, restoring from saved state" );
     	}
     	
-    	System.err.println( "Proceeding to check method calls (this will take a long time)" );
+    	Verbose.println( "Proceeding to check method calls (this will take a long time)" );
 
         if ( this.getState().getStage().equals( Stage.CHECK_METHOD ) ) { 
         	        	
@@ -254,9 +254,9 @@ public class Serianalyzer {
     			public void run() { 
     				try {
     					stopped.set( true );
-    					System.err.println( "Interrupt: Pausing to let other threads finish..." );
+    					Verbose.println( "Interrupt: Pausing to let other threads finish..." );
     					Thread.sleep( 100L );
-    					System.err.println( "Interrupt: Saving progress..." );
+    					Verbose.println( "Interrupt: Saving progress..." );
 						save();
 					} catch (SerianalyzerException e) {
 						e.printStackTrace();
@@ -271,7 +271,7 @@ public class Serianalyzer {
         			saveHook
         	);
 	
-	        System.err.println(String.format("****** Found %d initial methods to check", this.state.getToCheck().size())); //$NON-NLS-1$        
+	        Verbose.println(String.format("Found %d initial methods to check", this.state.getToCheck().size())); //$NON-NLS-1$        
 	
 	        long time = System.currentTimeMillis() + (1000 * 20);
 	        
@@ -279,12 +279,12 @@ public class Serianalyzer {
 	        long entryCount = 0L;
 	        while ( !stopped.get() && !this.state.getToCheck().isEmpty() ) {
 	        	if ( System.currentTimeMillis() > time ) {
-	        		System.err.println( new Date().toString() + "\t" + this.state.getToCheck().size() + " entries remaining\t" + entryCount + " entries processed" );
+	        		Verbose.println( new Date().toString() + "\t" + this.state.getToCheck().size() + " entries remaining\t" + entryCount + " entries processed" );
 	        		long totalElapsedSecs = 1 + (System.currentTimeMillis() - startTime) / 1000;
 	        		long rate = entryCount / totalElapsedSecs;
-	        		System.err.println( "\tAverage rate: " + rate + " per second" );
+	        		Verbose.println( "\tAverage rate: " + rate + " per second" );
 	        		long minutesLeft = (this.state.getToCheck().size() / rate) / 60;	        		
-	        		System.err.println( "\tProjected completion time: " + minutesLeft + " minutes" );
+	        		Verbose.println( "\tProjected completion time: " + minutesLeft + " minutes" );
 	        		time = System.currentTimeMillis() + (1000 * 20);
 	        	}
 	        	
