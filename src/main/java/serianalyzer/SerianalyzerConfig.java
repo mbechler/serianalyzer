@@ -62,6 +62,8 @@ public class SerianalyzerConfig {
 
     private boolean checkStaticPuts;
 
+    private InitialSetType initialSet;
+
 
     private static final void whitelist ( Set<MethodReference> wl, String method ) {
         boolean stat = false;
@@ -385,13 +387,44 @@ public class SerianalyzerConfig {
 
 
     /**
+     * @param initialSet
+     *            the initialSet to set
+     */
+    public void setInitialSet ( InitialSetType initialSet ) {
+        this.initialSet = initialSet;
+    }
+
+
+    /**
      * This can be used to trace additional calls made via invoke
      * 
      * @param ref
      * @return whether this method should be added to the initial set
      */
     public boolean isExtraCheckMethod ( MethodReference ref ) {
-        return isNoArgMethod(ref);
+        switch ( this.initialSet ) {
+        case GETTERS:
+            return isGetter(ref);
+        case ZEROARGMETHOD:
+            return isNoArgMethod(ref);
+        case DEFAULTCONST:
+            return isDefaultConstructor(ref);
+        case STRINGCONST:
+            return isStringConstructor(ref);
+        default:
+            break;
+        }
+        return false;
+    }
+
+
+    private static boolean isStringConstructor ( MethodReference ref ) {
+        return "<init>".equals(ref.getMethod()) && ref.getSignature().startsWith("(Ljava/lang/String;)");
+    }
+
+
+    private static boolean isDefaultConstructor ( MethodReference ref ) {
+        return "<init>".equals(ref.getMethod()) && ref.getSignature().startsWith("()");
     }
 
 

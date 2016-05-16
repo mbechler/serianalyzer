@@ -52,12 +52,13 @@ public class Main {
         final SerianalyzerInput input = new SerianalyzerInput(config);
 
         if ( remainArgs.isEmpty() ) {
-            System.err.println("Usage: serianalyzer [-w|--whitelist <whitelist>] [-i|-o <file>] [-n] [-d] <jar file/directory...>"); //$NON-NLS-1$
+            System.err.println("Usage: serianalyzer [-w|--whitelist <whitelist>] [-i|-o <file>] [-t <type>] [-n] [-d] <jar file/directory...>"); //$NON-NLS-1$
             System.err.println("    -w      Whitelist file"); //$NON-NLS-1$
             System.err.println("    -n      Disable heuristics"); //$NON-NLS-1$
             System.err.println("    -d      Dump instantiation details"); //$NON-NLS-1$
             System.err.println("    -i      Read analyzed state (do not run on untrusted inputs ;))"); //$NON-NLS-1$
             System.err.println("    -o      Write analyzed state (do not run on untrusted inputs ;))"); //$NON-NLS-1$
+            System.err.println("    -t      Use custom initial method set " + Arrays.toString(InitialSetType.values())); //$NON-NLS-1$
             System.err.println();
             System.exit(-1);
         }
@@ -104,6 +105,7 @@ public class Main {
         boolean dumpInstantiation = false;
         File saveFile = null;
         File restoreFile = null;
+        InitialSetType initialSet = InitialSetType.JAVA;
 
         int i = 0;
         for ( ; i < args.length; i++ ) {
@@ -125,12 +127,17 @@ public class Main {
                 i++;
                 saveFile = new File(args[ i ]);
             }
+            else if ( "-t".equals(arg) || "--initialSet".equals(arg) ) { //$NON-NLS-1$ //$NON-NLS-2$
+                i++;
+                initialSet = InitialSetType.valueOf(args[ i ]);
+            }
             else {
                 break;
             }
         }
 
         SerianalyzerConfig config = new SerianalyzerConfig(noHeuristics, dumpInstantiation);
+        config.setInitialSet(initialSet);
         for ( String whitelistArg : whitelistArgs ) {
             log.info("Loading whitelist " + whitelistArg); //$NON-NLS-1$
             try ( FileInputStream fis = new FileInputStream(whitelistArg) ) {
