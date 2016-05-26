@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>serianalyzer</groupId>
 	<artifactId>serianalyzer</artifactId>
-	<version>1.0.0</version>
+	<version>1.1.0</version>
 	<name>Serianalyzer</name>
 	<description>
 </description>
@@ -37,6 +37,7 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.5.1</version>
 				<configuration>
 					<source>1.8</source>
 					<target>1.8</target>
@@ -44,6 +45,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.6</version>
 				<executions>
 					<execution>
 						<phase>package</phase>

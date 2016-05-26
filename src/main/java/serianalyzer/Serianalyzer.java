@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
 import org.jboss.jandex.ClassInfo;
@@ -47,6 +49,8 @@ import org.jboss.jandex.DotName;
 import org.jboss.jandex.Index;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Type;
+
+import serianalyzer.SerianalyzerState.Stage;
 
 
 /**
@@ -61,10 +65,14 @@ public class Serianalyzer {
 
     private SerianalyzerInput input;
     private SerianalyzerState state;
+    AtomicBoolean stopped;
 
     private Map<String, Boolean> serializableCache = new HashMap<>();
 
     private long lastOutput = 0;
+
+    private Set<MethodReference> reported = new HashSet<>();
+    private Set<MethodReference> notFound = new HashSet<>();
 
 
     /**
@@ -73,15 +81,17 @@ public class Serianalyzer {
     public Serianalyzer ( SerianalyzerInput input ) {
         this.input = input;
         this.state = new SerianalyzerState();
+        this.stopped = new AtomicBoolean(false);
     }
 
 
     /**
      * @return whether any bad instances were found
      * @throws SerianalyzerException
+     * @throws InterruptedException
      * 
      */
-    public boolean analyze () throws SerianalyzerException {
+    public boolean analyze () throws SerianalyzerException, InterruptedException {
         return restoreOrRunAnalysis();
     }
 
@@ -89,23 +99,32 @@ public class Serianalyzer {
     /**
      * @return
      * @throws SerianalyzerException
+     * @throws InterruptedException
      * 
      */
-    private boolean restoreOrRunAnalysis () throws SerianalyzerException {
-        boolean foundAny;
-        if ( this.input.getConfig().getRestoreFrom() != null ) {
+    private boolean restoreOrRunAnalysis () throws SerianalyzerException, InterruptedException {
+        boolean foundAny = false;
+
+        if ( this.input.getConfig().getRestoreFrom() != null && this.input.getConfig().getRestoreFrom().exists() ) {
+            Verbose.println("Restoring state"); //$NON-NLS-1$
             restore();
-            foundAny = filterAndDump();
-            save();
+            Verbose.println("Restored to stage: " + this.getState().getStage()); //$NON-NLS-1$
+            runAnalysis();
+            if ( !this.stopped.get() ) {
+                foundAny = filterAndDump();
+                save();
+            }
         }
         else {
             this.lastOutput = System.currentTimeMillis();
             runAnalysis();
-            save();
-            log.info(String.format("Found a total %d method calls reachable", this.state.getTotalKnownCount())); //$NON-NLS-1$
-            log.info(String.format("Found a total %d native method initially reachable", this.state.getNativeMethods().size())); //$NON-NLS-1$
-            log.info(String.format("Found a total %d safe methods", this.state.getSafe().size())); //$NON-NLS-1$
-            foundAny = filterAndDump();
+            if ( !this.stopped.get() ) {
+                save();
+                log.info(String.format("Found a total %d method calls reachable", this.state.getTotalKnownCount())); //$NON-NLS-1$
+                log.info(String.format("Found a total %d target method initially reachable", this.state.getReportMethods().size())); //$NON-NLS-1$
+                log.info(String.format("Found a total %d safe methods", this.state.getSafe().size())); //$NON-NLS-1$
+                foundAny = filterAndDump();
+            }
         }
         return foundAny;
     }
@@ -117,8 +136,8 @@ public class Serianalyzer {
      */
     private boolean filterAndDump () {
         prefilterMethods();
-        log.info(String.format("Found a total %d native methods remaining", this.state.getNativeMethods().size())); //$NON-NLS-1$
-        List<MethodReference> dump = new ArrayList<>(this.state.getNativeMethods());
+        log.info(String.format("Found a total %d target methods remaining", this.state.getReportMethods().size())); //$NON-NLS-1$
+        List<MethodReference> dump = new ArrayList<>(this.state.getReportMethods());
         Collections.sort(dump, new MethodReferenceComparator());
 
         Set<DotName> usedInstantiable = new HashSet<>();
@@ -141,7 +160,7 @@ public class Serianalyzer {
         }
 
         for ( MethodReference ref : this.state.getMethodCallers().keySet() ) {
-            Logger cl = Logger.getLogger(Serianalyzer.class.getName() + "." + ref.getTypeNameString() + "." + ref.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
+            Logger cl = Verbose.getPerMethodLogger(ref);
             if ( cl.isDebugEnabled() ) {
                 cl.debug(ref + " callers are " + this.state.getMethodCallers().get(ref)); //$NON-NLS-1$
                 cl.debug(ref + " callees are " + this.state.getMethodCallees().get(ref)); //$NON-NLS-1$
@@ -149,18 +168,23 @@ public class Serianalyzer {
         }
 
         this.state.getBench().dump();
+        try {
+            save();
+        }
+        catch ( SerianalyzerException e ) {
+            e.printStackTrace();
+        }
 
         return nonWhitelist.size() > 0 || stPuts > 0;
     }
 
 
     /**
-     * @param saveTo
      * @throws SerianalyzerException
      */
-    private void save () throws SerianalyzerException {
+    public void save () throws SerianalyzerException {
         if ( this.input.getConfig().getSaveTo() != null ) {
-            log.info("Saving state"); //$NON-NLS-1$
+            Verbose.println("Saving intermediary state..."); //$NON-NLS-1$
             try ( FileOutputStream fos = new FileOutputStream(this.input.getConfig().getSaveTo());
                   ObjectOutputStream oos = new ObjectOutputStream(fos) ) {
                 oos.writeObject(this.state);
@@ -168,6 +192,7 @@ public class Serianalyzer {
             catch ( IOException e ) {
                 throw new SerianalyzerException("Failed to write state", e); //$NON-NLS-1$
             }
+            Verbose.println("Saved successfully!"); //$NON-NLS-1$
         }
     }
 
@@ -187,6 +212,7 @@ public class Serianalyzer {
             catch (
                 IOException |
                 ClassNotFoundException e ) {
+                e.printStackTrace();
                 throw new SerianalyzerException("Failed to restore state", e); //$NON-NLS-1$
             }
             log.info("Loaded state"); //$NON-NLS-1$
@@ -196,24 +222,92 @@ public class Serianalyzer {
 
     /**
      * @throws SerianalyzerException
+     * @throws InterruptedException
      */
-    private void runAnalysis () throws SerianalyzerException {
-        Set<ClassInfo> serializable = this.input.getIndex().getAllKnownImplementors(DotName.createSimple(Serializable.class.getName()));
-        log.info(String.format("Found %d serializable classes", serializable.size())); //$NON-NLS-1$
+    private void runAnalysis () throws SerianalyzerException, InterruptedException {
+        if ( this.getState().getStage().equals(Stage.CHECK_CLASS) ) {
+            long time = System.currentTimeMillis();
 
-        for ( ClassInfo ci : serializable ) {
-            if ( this.input.getConfig().isWhitelistedClass(ci.name().toString()) ) {
-                continue;
+            Set<ClassInfo> serializable = this.input.getIndex().getAllKnownImplementors(DotName.createSimple(Serializable.class.getName()));
+            Verbose.println(String.format("Found %d serializable classes", serializable.size())); //$NON-NLS-1$
+
+            int count = 0;
+            for ( ClassInfo ci : serializable ) {
+                count++;
+
+                if ( ( count % 100 ) == 0 ) {
+                    Verbose.println("Checking class " + count + " of " + serializable.size()); //$NON-NLS-1$ //$NON-NLS-2$
+                }
+
+                if ( this.input.getConfig().isWhitelistedClass(ci.name().toString()) ) {
+                    continue;
+                }
+                checkClass(ci);
             }
-            checkClass(ci);
+            Verbose.println("DONE checking serializable classes, elapsed time = " + ( System.currentTimeMillis() - time ) / 1000); //$NON-NLS-1$
+
+            this.getState().setStage(Stage.CHECK_METHOD);
+            save();
+        }
+        else {
+            Verbose.println("Skipping serializable class checking, restoring from saved state"); //$NON-NLS-1$
         }
 
-        log.info(String.format("Found %d initial methods to check", this.state.getToCheck().size())); //$NON-NLS-1$
+        Verbose.println("Proceeding to check method calls (this will take a long time)"); //$NON-NLS-1$
 
-        while ( !this.state.getToCheck().isEmpty() ) {
-            MethodReference method = this.state.getToCheck().poll();
-            this.state.trackKnown(method);
-            doCheckMethod(method);
+        if ( this.getState().getStage().equals(Stage.CHECK_METHOD) ) {
+
+            Thread saveHook = new Thread() {
+
+                @Override
+                public void run () {
+                    try {
+                        Serianalyzer.this.stopped.set(true);
+                        Verbose.println("Interrupt: Pausing to let other threads finish..."); //$NON-NLS-1$
+                        Thread.sleep(100L);
+                        Verbose.println("Interrupt: Saving progress..."); //$NON-NLS-1$
+                        save();
+                    }
+                    catch ( SerianalyzerException e ) {
+                        e.printStackTrace();
+                    }
+                    catch ( InterruptedException e ) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+
+            Runtime.getRuntime().addShutdownHook(saveHook);
+
+            Verbose.println(String.format("Found %d initial methods to check", this.state.getToCheck().size())); //$NON-NLS-1$
+
+            long time = System.currentTimeMillis() + ( 1000 * 20 );
+
+            long startTime = System.currentTimeMillis();
+            long entryCount = 0L;
+            while ( !this.stopped.get() && !this.state.getToCheck().isEmpty() ) {
+                if ( System.currentTimeMillis() > time ) {
+                    time = System.currentTimeMillis() + ( 1000 * 20 );
+                    Verbose.println(
+                        new Date().toString() + "\t" + this.state.getToCheck().size() + " entries remaining\t" + entryCount + " entries processed"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                    long totalElapsedSecs = 1 + ( System.currentTimeMillis() - startTime ) / 1000;
+                    long rate = entryCount / totalElapsedSecs;
+                    Verbose.println("\tAverage rate: " + rate + " per second"); //$NON-NLS-1$ //$NON-NLS-2$
+                }
+
+                MethodReference method = this.state.getToCheck().poll();
+                this.state.trackKnown(method);
+                doCheckMethod(method);
+                entryCount++;
+            }
+
+            if ( this.stopped.get() ) {
+                throw new InterruptedException("Stopped by runtime shutdown hook"); //$NON-NLS-1$
+            }
+
+            Runtime.getRuntime().removeShutdownHook(saveHook);
+
+            this.getState().setStage(Stage.ANALYSIS_COMPLETE);
         }
     }
 
@@ -223,9 +317,9 @@ public class Serianalyzer {
      */
     private void prefilterMethods () {
         log.info("Running filtering with heuristics " + ( this.input.getConfig().isUseHeuristics() ? "ENABLED" : "DISABLED" )); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-        removeIgnoreTaint(this.state.getSafe(), this.state.getNativeMethods());
+        removeIgnoreTaint(this.state.getSafe(), this.state.getReportMethods());
         this.state.getSafe().addAll(this.input.getConfig().getNativeWhiteList());
-        this.state.getNativeMethods().removeAll(this.input.getConfig().getNativeWhiteList());
+        this.state.getReportMethods().removeAll(this.input.getConfig().getNativeWhiteList());
 
         for ( MethodReference s : this.state.getSafe() ) {
             removeSafeCalls(s);
@@ -238,7 +332,7 @@ public class Serianalyzer {
         int i = 0;
         while ( anyChanged ) {
             i++;
-            log.info("Filtering: iteration " + i + "..."); //$NON-NLS-1$ //$NON-NLS-2$
+            Verbose.println("Filtering: iteration " + i + "..."); //$NON-NLS-1$ //$NON-NLS-2$
             anyChanged = false;
             anyChanged |= removeUninstantiable();
 
@@ -250,10 +344,9 @@ public class Serianalyzer {
             anyChanged |= this.state.getStaticPuts().removeAll(toRemove);
             log.info(String.format("Remaining methods %d", this.state.getTotalKnownCount())); //$NON-NLS-1$
             log.info(String.format("Remaining instantiable types %d", this.state.getInstantiableTypes().size())); //$NON-NLS-1$
-            anyChanged |= removeIgnoreTaint(this.state.getNativeMethods(), toRemove);
+            anyChanged |= removeIgnoreTaint(this.state.getReportMethods(), toRemove);
             toRemove.clear();
         }
-
         log.info("Finished filtering"); //$NON-NLS-1$
         System.out.flush();
         System.err.flush();
@@ -529,7 +622,7 @@ public class Serianalyzer {
     private boolean checkAllRecursive ( String typeName, Set<String> visited, Map<String, Boolean> recursionCache ) {
         Set<MethodReference> i = this.state.getInstantiatedThrough().get(typeName);
 
-        Logger cl = Logger.getLogger(this.getClass().getName() + "." + typeName); //$NON-NLS-1$
+        Logger cl = Verbose.getPerClassLogger(typeName);
 
         if ( i == null || i.isEmpty() ) {
             log.warn("Instantiated through is empty " + typeName); //$NON-NLS-1$
@@ -774,7 +867,7 @@ public class Serianalyzer {
         for ( MethodReference caller : calls ) {
             Set<MethodReference> callerCalls = this.state.getMethodCallees().get(caller);
             if ( callerCalls != null ) {
-                Logger cl = Logger.getLogger(Serianalyzer.class.getName() + "." + s.getTypeNameString() + "." + s.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
+                Logger cl = Verbose.getPerMethodLogger(s);
                 if ( "<init>".equals(s.getMethod()) ) { //$NON-NLS-1$
                     continue;
                 }
@@ -853,10 +946,23 @@ public class Serianalyzer {
      */
     public boolean checkMethodCall ( MethodReference initialRef, Set<MethodReference> cal, boolean wantFixedType, boolean wantSerializableOnly ) {
 
-        Logger cl = Logger.getLogger(Serianalyzer.class.getName() + "." + initialRef.getTypeNameString() + "." + initialRef.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
+        Logger cl = Verbose.getPerMethodLogger(initialRef);
 
         if ( cl.isTraceEnabled() ) {
             log.trace("Adding call " + initialRef + " with caller " + cal); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+
+        if ( this.getConfig().isStopMethod(initialRef) ) {
+            if ( this.reported.add(initialRef.comparable()) ) {
+                this.state.traceCalls(initialRef, cal);
+                this.getState().reportCall(initialRef);
+                Verbose.println(String.format(
+                    "Encountered method %s->%s %s", //$NON-NLS-1$
+                    initialRef.getTypeNameString(),
+                    initialRef.getMethod(),
+                    initialRef.getSignature()));
+            }
+            return false;
         }
 
         boolean fixedType = wantFixedType;
@@ -933,6 +1039,9 @@ public class Serianalyzer {
         boolean anyFound = false;
         for ( ClassInfo impl : impls ) {
             MethodReference e = methodReference.adaptToType(impl.name());
+            if ( this.getConfig().isWhitelisted(e) ) {
+                continue;
+            }
             TypeUtil.checkReferenceTyping(this.input.getIndex(), this.input.getConfig().isIgnoreNonFound(), e);
             this.state.traceCalls(e, cal);
             this.state.trackKnown(e);
@@ -1017,7 +1126,7 @@ public class Serianalyzer {
      */
     private void doCheckMethod ( MethodReference methodReference ) throws SerianalyzerException {
 
-        Logger cl = Logger.getLogger(Serianalyzer.class.getName() + "." + methodReference.getTypeNameString() + "." + methodReference.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
+        Logger cl = Verbose.getPerMethodLogger(methodReference);
 
         if ( cl.isTraceEnabled() ) {
             cl.trace(String.format("Checking reference %s", methodReference)); //$NON-NLS-1$
@@ -1067,7 +1176,10 @@ public class Serianalyzer {
                     found = doCheckInInterfaces(methodReference, cl, callers);
 
                     if ( !found && !methodReference.getTypeNameString().startsWith("java.lang.invoke.") ) { //$NON-NLS-1$
-                        cl.warn("Method not found " + methodReference); //$NON-NLS-1$
+                        MethodReference cmp = methodReference.comparable();
+                        if ( this.notFound.add(cmp) ) {
+                            cl.warn("Method not found " + methodReference); //$NON-NLS-1$
+                        }
                     }
                 }
 
@@ -1298,27 +1410,29 @@ public class Serianalyzer {
 
         boolean allFound = true;
         for ( ClassInfo impl : impls ) {
-            boolean found = TypeUtil.implementsMethod(c, impl);
-            if ( !found ) {
-                continue;
-            }
+            if ( impl != null ) {
+                boolean found = TypeUtil.implementsMethod(c, impl);
+                if ( !found ) {
+                    continue;
+                }
 
-            MethodReference e = c.adaptToType(impl.name());
-            try {
-                if ( !this.state.getCheckedReturnType().contains(e) ) {
-                    this.state.getCheckedReturnType().add(e);
-                    doCheckMethod(e);
-                    Type type = this.state.getReturnTypes().get(e);
-                    if ( type != null ) {
-                        implTypes.add(type);
-                    }
-                    else {
-                        return false;
+                MethodReference e = c.adaptToType(impl.name());
+                try {
+                    if ( !this.state.getCheckedReturnType().contains(e) ) {
+                        this.state.getCheckedReturnType().add(e);
+                        doCheckMethod(e);
+                        Type type = this.state.getReturnTypes().get(e);
+                        if ( type != null ) {
+                            implTypes.add(type);
+                        }
+                        else {
+                            return false;
+                        }
                     }
                 }
-            }
-            catch ( SerianalyzerException e1 ) {
-                log.warn("Failed to check method", e1); //$NON-NLS-1$
+                catch ( SerianalyzerException e1 ) {
+                    log.warn("Failed to check method", e1); //$NON-NLS-1$
+                }
             }
         }
         return allFound;

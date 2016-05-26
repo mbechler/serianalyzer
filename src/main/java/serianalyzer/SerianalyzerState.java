@@ -45,6 +45,14 @@ import org.objectweb.asm.Type;
  */
 public class SerianalyzerState implements Serializable {
 
+    enum Stage {
+
+        CHECK_CLASS, CHECK_METHOD, ANALYSIS_COMPLETE
+
+    }
+
+    private Stage stage = Stage.CHECK_CLASS;
+
     /**
      * 
      */
@@ -57,7 +65,7 @@ public class SerianalyzerState implements Serializable {
     private Map<MethodReference, Set<MethodReference>> known = new HashMap<>();
     private Map<MethodReference, Set<MethodReference>> methodCallers = new HashMap<>();
     private Map<MethodReference, Set<MethodReference>> methodCallees = new HashMap<>();
-    private Set<MethodReference> nativeMethods = new HashSet<>();
+    private Set<MethodReference> reportMethods = new HashSet<>();
     private Set<String> instantiableTypes = new HashSet<>();
     private Set<String> forcedInstantiable = new HashSet<>();
     private Map<String, Set<MethodReference>> instantiatedThrough = new HashMap<>();
@@ -79,6 +87,19 @@ public class SerianalyzerState implements Serializable {
      */
     public Benchmark getBench () {
         return this.bench;
+    }
+
+
+    /**
+     * @return currently running analysis stage
+     */
+    public Stage getStage () {
+        return this.stage;
+    }
+
+
+    void setStage ( Stage stage ) {
+        this.stage = stage;
     }
 
 
@@ -127,7 +148,7 @@ public class SerianalyzerState implements Serializable {
         }
         toRemove.add(s);
 
-        Logger cl = Logger.getLogger(Serianalyzer.class.getName() + "." + s.getTypeNameString() + "." + s.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
+        Logger cl = Verbose.getPerMethodLogger(s);
         if ( cl.isDebugEnabled() ) {
             cl.debug(String.format("%s, removing call %s", r, s)); //$NON-NLS-1$
         }
@@ -157,7 +178,7 @@ public class SerianalyzerState implements Serializable {
         }
         this.instantiableTypes.add(tn);
         Set<MethodReference> set = this.instantiatedThrough.get(tn);
-        Logger cl = Logger.getLogger(Serianalyzer.class.getName() + "." + tn); //$NON-NLS-1$
+        Logger cl = Verbose.getPerClassLogger(tn);
         if ( set == null ) {
             set = new HashSet<>();
             if ( this.instantiatedThrough.put(tn, set) == null ) {
@@ -185,7 +206,7 @@ public class SerianalyzerState implements Serializable {
      */
     void traceCalls ( MethodReference methodReference, Set<MethodReference> cal ) {
         MethodReference called = methodReference.comparable();
-        Logger cl = Logger.getLogger(Serianalyzer.class.getName() + "." + called.getTypeNameString()); //$NON-NLS-1$
+        Logger cl = Verbose.getPerClassLogger(called.getTypeNameString());
         if ( cl.isDebugEnabled() ) {
             cl.debug(String.format("Adding call to %s by %s", methodReference, cal)); //$NON-NLS-1$
         }
@@ -285,8 +306,8 @@ public class SerianalyzerState implements Serializable {
     /**
      * @param ref
      */
-    void nativeCall ( MethodReference ref ) {
-        this.nativeMethods.add(ref.comparable());
+    void reportCall ( MethodReference ref ) {
+        this.reportMethods.add(ref.comparable());
         this.trackKnown(ref);
     }
 
@@ -295,6 +316,13 @@ public class SerianalyzerState implements Serializable {
      * @param ref
      */
     void addInitial ( MethodReference ref ) {
+        /*
+         * if ( !initial.contains( ref.comparable() ) ) {
+         * System.err.println( "Initial method found: " + String.format( "%s->%s %s", ref.getTypeNameString(),
+         * ref.getMethod(), ref.getSignature() ) );
+         * }
+         */
+
         this.initial.add(ref.comparable());
     }
 
@@ -341,7 +369,7 @@ public class SerianalyzerState implements Serializable {
     public void trackKnown ( MethodReference method ) {
         MethodReference cmp = method.comparable();
 
-        Logger cl = Logger.getLogger(Serianalyzer.class.getName() + "." + cmp.getTypeNameString() + "." + cmp.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
+        Logger cl = Verbose.getPerMethodLogger(cmp);
         if ( cl.isDebugEnabled() ) {
             cl.debug(String.format("Handled call to %s", cmp)); //$NON-NLS-1$
         }
@@ -433,8 +461,8 @@ public class SerianalyzerState implements Serializable {
     /**
      * @return the nativeMethods
      */
-    public Set<MethodReference> getNativeMethods () {
-        return this.nativeMethods;
+    public Set<MethodReference> getReportMethods () {
+        return this.reportMethods;
     }
 
 

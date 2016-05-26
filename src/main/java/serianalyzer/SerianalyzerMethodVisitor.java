@@ -75,7 +75,7 @@ public class SerianalyzerMethodVisitor extends MethodVisitor {
     public SerianalyzerMethodVisitor ( SerianalyzerClassVisitorBase parent, MethodReference ref, DotName actualClass ) {
         super(Opcodes.ASM5);
 
-        this.log = Logger.getLogger(serianalyzer.Serianalyzer.class.getName() + "." + ref.getTypeNameString() + "." + ref.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
+        this.log = Verbose.getPerMethodLogger(ref);
         this.parent = parent;
         this.ref = ref;
 
@@ -100,8 +100,8 @@ public class SerianalyzerMethodVisitor extends MethodVisitor {
         }
 
         Type[] argumentTypes = Type.getArgumentTypes(ref.getSignature());
-        if ( ref.getArgumentTypes() != null && ref.getArgumentTypes().size() == argumentTypes.length ) {
-            argumentTypes = ref.getArgumentTypes().toArray(argumentTypes);
+        if ( ref.getArgumentTypes() != null && ref.getArgumentTypes().length == argumentTypes.length ) {
+            argumentTypes = ref.getArgumentTypes();
         }
         else {
             this.log.debug("Do not have actual argument types " + ref.getArgumentTypes()); //$NON-NLS-1$
@@ -442,13 +442,15 @@ public class SerianalyzerMethodVisitor extends MethodVisitor {
         // optimize away doPrivileged calls, were more interested in the call target
         if ( "java.security.AccessController".equals(clName) && "doPrivileged".equals(name) ) { //$NON-NLS-1$ //$NON-NLS-2$
             if ( this.parent.getAnalyzer().getConfig().isDumpPrivileged() ) {
-                this.parent.getAnalyzer().getState().nativeCall(r);
+                this.parent.getAnalyzer().getState().reportCall(r);
                 this.parent.getAnalyzer().getState().traceCalls(r, Collections.singleton(this.ref));
             }
             if ( !args.isEmpty() && args.get(0) instanceof ObjectReferenceConstant ) {
                 ObjectReferenceConstant privAction = (ObjectReferenceConstant) args.get(0);
                 String privActionClass = privAction.getClassName();
-                this.log.debug("Replacing doPrivileged in " + this.ref + " with " + privActionClass); //$NON-NLS-1$ //$NON-NLS-2$
+                if ( this.log.isDebugEnabled() ) {
+                    this.log.debug("Replacing doPrivileged in " + this.ref + " with " + privActionClass); //$NON-NLS-1$ //$NON-NLS-2$
+                }
                 r = new MethodReference(privActionClass, false, "run", false, "()Ljava/lang/Object;"); //$NON-NLS-1$//$NON-NLS-2$
                 tgt = privAction;
                 realOwner = privAction.getClassName();

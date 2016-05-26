@@ -43,8 +43,9 @@ public class Main {
 
     /**
      * @param args
+     * @throws InterruptedException
      */
-    public static void main ( String[] args ) {
+    public static void main ( String[] args ) throws InterruptedException {
         long start = System.currentTimeMillis();
 
         List<String> remainArgs = new ArrayList<>();
@@ -52,12 +53,13 @@ public class Main {
         final SerianalyzerInput input = new SerianalyzerInput(config);
 
         if ( remainArgs.isEmpty() ) {
-            System.err.println("Usage: serianalyzer [-w|--whitelist <whitelist>] [-i|-o <file>] [-t <type>] [-n] [-d] <jar file/directory...>"); //$NON-NLS-1$
+            System.err.println("Usage: serianalyzer [-v] [-w|--whitelist <whitelist>] [-i|-o <file>] [-t <type>] [-n] [-d] <jar file/directory...>"); //$NON-NLS-1$
             System.err.println("    -w      Whitelist file"); //$NON-NLS-1$
             System.err.println("    -n      Disable heuristics"); //$NON-NLS-1$
             System.err.println("    -d      Dump instantiation details"); //$NON-NLS-1$
             System.err.println("    -i      Read analyzed state (do not run on untrusted inputs ;))"); //$NON-NLS-1$
             System.err.println("    -o      Write analyzed state (do not run on untrusted inputs ;))"); //$NON-NLS-1$
+            System.err.println("    -v      Print out verbose output, including progress and timing info (will also be logged regardless)"); //$NON-NLS-1$
             System.err.println("    -t      Use custom initial method set " + Arrays.toString(InitialSetType.values())); //$NON-NLS-1$
             System.err.println();
             System.exit(-1);
@@ -81,6 +83,7 @@ public class Main {
             res = analyzer.analyze();
         }
         catch ( SerianalyzerException e ) {
+            e.printStackTrace();
             log.error("Failed to perform analysis", e); //$NON-NLS-1$
         }
 
@@ -126,6 +129,9 @@ public class Main {
             else if ( "-o".equals(arg) || "--output".equals(arg) ) { //$NON-NLS-1$ //$NON-NLS-2$
                 i++;
                 saveFile = new File(args[ i ]);
+            }
+            else if ( "-v".equals(arg) || "--verbose".equals(arg) ) { //$NON-NLS-1$ //$NON-NLS-2$
+                Verbose.VERBOSE = true;
             }
             else if ( "-t".equals(arg) || "--initialSet".equals(arg) ) { //$NON-NLS-1$ //$NON-NLS-2$
                 i++;

@@ -22,7 +22,12 @@ package serianalyzer;
 
 
 import java.io.Serializable;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -55,6 +60,27 @@ import org.objectweb.asm.Type;
 public final class TypeUtil {
 
     private static final Logger log = Logger.getLogger(TypeUtil.class);
+
+    private static Field METHOD_INTERNAL;
+    private static MethodHandle NAME_BYTES;
+
+
+    static {
+
+        try {
+            METHOD_INTERNAL = MethodInfo.class.getDeclaredField("methodInternal"); //$NON-NLS-1$
+            METHOD_INTERNAL.setAccessible(true);
+            Class<?> methodInt = Class.forName("org.jboss.jandex.MethodInternal"); //$NON-NLS-1$
+            Method nameb = methodInt.getDeclaredMethod("nameBytes"); //$NON-NLS-1$
+            nameb.setAccessible(true);
+            NAME_BYTES = MethodHandles.lookup().unreflect(nameb);
+        }
+        catch ( Exception e ) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+
+    }
 
 
     /**
@@ -154,11 +180,22 @@ public final class TypeUtil {
      * @return
      */
     static boolean implementsMethod ( MethodReference methodReference, ClassInfo impl ) {
+        byte[] mnameb = methodReference.getMethod().getBytes(StandardCharsets.UTF_8);
+
         for ( MethodInfo i : impl.methods() ) {
             if ( ( i.flags() & Modifier.ABSTRACT ) != 0 ) {
                 continue;
             }
-            if ( methodReference.getMethod().equals(i.name()) ) {
+            // this decodes the name every time
+            byte[] inameb;
+            try {
+                inameb = (byte[]) NAME_BYTES.invoke(METHOD_INTERNAL.get(i));
+            }
+            catch ( Throwable e ) {
+                e.printStackTrace();
+                return false;
+            }
+            if ( Arrays.equals(mnameb, inameb) ) {
                 // ACC_VARARGS
                 if ( ( i.flags() & 0x80 ) != 0 ) {
                     return true;
@@ -406,14 +443,14 @@ public final class TypeUtil {
 
         Type[] argumentTypes = Type.getArgumentTypes(ref.getSignature());
 
-        if ( ref.getArgumentTypes() != null && ref.getArgumentTypes().size() == argumentTypes.length ) {
+        if ( ref.getArgumentTypes() != null && ref.getArgumentTypes().length == argumentTypes.length ) {
             for ( int k = 0; k < argumentTypes.length; k++ ) {
                 try {
-                    TypeUtil.getMoreConcreteType(i, ignoreNonFound, ref.getArgumentTypes().get(k), argumentTypes[ k ]);
+                    TypeUtil.getMoreConcreteType(i, ignoreNonFound, ref.getArgumentTypes()[ k ], argumentTypes[ k ]);
                 }
                 catch ( SerianalyzerException e ) {
                     log.warn("Failed to determine argument type", e); //$NON-NLS-1$
-                    log.warn("Failing type " + ref.getArgumentTypes().get(k)); //$NON-NLS-1$
+                    log.warn("Failing type " + ref.getArgumentTypes()[ k ]); //$NON-NLS-1$
                     log.warn("Signature type " + argumentTypes[ k ]); //$NON-NLS-1$
                     log.warn("For " + ref); //$NON-NLS-1$
                     System.exit(-1);

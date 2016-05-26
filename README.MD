@@ -43,17 +43,21 @@ On big class paths this can take quite some time and memory.
 ## Usage
 
 ```
-Usage: serianalyzer.Main [-w|--whitelist <whitelist>] [-i|-o <file>] [-n] [-d] <jar file/directory...>
+Usage: serianalyzer.Main [-v] [-w|--whitelist <whitelist>] [-i|-o <file>] [-t <type>] [-n] [-d] <jar file/directory...>
     -w      Whitelist file, you can pass multiple by specifying multiple times or separating with a comma
     -n      Disable heuristics
     -d      Dump instantiation details
     -i      Read analyzed state
     -o      Write analyzed state
+    -v      Print out verbose output, including progress and timing info (will also be logged regardless)
+    -t      Use custom initial method set
 ```
 
-Giving -i and -o at the same time performs another filtering round using the whilelist.
+Giving -i and -o at the same time performs another filtering round using the whilelist. Note that loading a large state file will take a long time.
 
 Don't forget to raise your java heap limit if scanning large classpaths. 
+
+New: If you Ctrl+C in the middle of the process, Serianalyzer will attempt to save its state to resume later. This can take a long time (ten minutes or so for a large classpath), so you can press Ctrl+C again to stop it.
 
 ## Modes of operation
 

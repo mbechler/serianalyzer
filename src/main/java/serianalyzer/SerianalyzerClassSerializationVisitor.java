@@ -53,7 +53,7 @@ public class SerianalyzerClassSerializationVisitor extends ClassVisitor implemen
      */
     public SerianalyzerClassSerializationVisitor ( Serianalyzer analyzer, String clName, boolean serializable ) {
         super(Opcodes.ASM5);
-        this.log = Logger.getLogger(serianalyzer.Serianalyzer.class.getName() + "." + clName); //$NON-NLS-1$
+        this.log = Verbose.getPerClassLogger(clName);
         this.log.debug("Found class " + clName); //$NON-NLS-1$
         this.analyzer = analyzer;
         this.clName = clName;
@@ -179,10 +179,12 @@ public class SerianalyzerClassSerializationVisitor extends ClassVisitor implemen
      * @return
      */
     private boolean isReachableMethod ( String name, String signature, int access ) {
-        return ( this.serializable && "readObject".equals(name) && "(Ljava/io/ObjectInputStream;)V".equals(signature) ) || //$NON-NLS-1$ //$NON-NLS-2$
-                ( this.serializable && "readExternal".equals(name) && "(Ljava/io/ObjectInput;)V".equals(signature) ) || //$NON-NLS-1$ //$NON-NLS-2$
-                ( this.serializable && "readObjectNoData".equals(name) && "()V".equals(signature) ) || //$NON-NLS-1$ //$NON-NLS-2$
-                ( this.serializable && "invoke".equals(name) //$NON-NLS-1$
+        return this.analyzer.getConfig().isConsiderReachable(this.serializable, name, signature, access)
+                || ( this.serializable && "readResolve".equals(name) && "()Ljava/lang/Object;".equals(signature) ) //$NON-NLS-1$ //$NON-NLS-2$
+                || ( this.serializable && "readObject".equals(name) && "(Ljava/io/ObjectInputStream;)V".equals(signature) ) //$NON-NLS-1$ //$NON-NLS-2$
+                || ( this.serializable && "readExternal".equals(name) && "(Ljava/io/ObjectInput;)V".equals(signature) ) //$NON-NLS-1$ //$NON-NLS-2$
+                || ( this.serializable && "readObjectNoData".equals(name) && "()V".equals(signature) ) //$NON-NLS-1$ //$NON-NLS-2$
+                || ( this.serializable && "invoke".equals(name) //$NON-NLS-1$
                         && "(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;" //$NON-NLS-1$
                                 .equals(signature) )
                 || ( this.serializable && "$deserializeLambda$".equals(name) ) || isDefaultConstructor(name, signature, access) //$NON-NLS-1$

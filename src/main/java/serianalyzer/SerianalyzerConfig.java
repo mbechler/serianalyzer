@@ -54,7 +54,7 @@ public class SerianalyzerConfig {
 
     private final Set<String> ignorePkg = new HashSet<>();
     private Set<String> instantiationFix = new HashSet<>();
-    private Set<String> nastyInterfaces = new HashSet<>(Arrays.asList("java.util.Enumeration", "java.util.Iterator"));
+    private Set<String> nastyInterfaces = new HashSet<>(Arrays.asList("java.util.Enumeration", "java.util.Iterator", "java.lang.Runnable"));
     private boolean dumpInstantiationInfo;
 
     private File restoreFrom;
@@ -357,7 +357,7 @@ public class SerianalyzerConfig {
      * @return the maximum numer of call traces to output per instance
      */
     public int getMaxDisplayDumps () {
-        return 15;
+        return 20;
     }
 
 
@@ -442,6 +442,41 @@ public class SerianalyzerConfig {
      * @return whether to include doPrivileged calls as native calls, otherwise only their targets are analyzed
      */
     public boolean isDumpPrivileged () {
+        return false;
+    }
+
+
+    /**
+     * @param serializable
+     * @param name
+     * @param signature
+     * @param access
+     * @return whether
+     */
+    public boolean isConsiderReachable ( boolean serializable, String name, String signature, int access ) {
+        return ( serializable && "toString".equals(name) ) || ( serializable && "hashCode".equals(name) ) || ( serializable && "equals".equals(name) )
+                || ( serializable && "compareTo".equals(name) );
+    }
+
+
+    /**
+     * Known bad methods which will stop tracing immediately
+     * 
+     * @param ref
+     * @return whether the reference is a stop method
+     */
+    public boolean isStopMethod ( MethodReference ref ) {
+        if ( ( ref.getTypeNameString().equals("java.io.File") && ref.getMethod().equals("delete") )
+                || ( ref.getTypeNameString().equals("javax.naming.InitialContext") && ref.getMethod().equals("lookup") )
+                || ( ref.getTypeNameString().equals("java.lang.reflect.Method") && ref.getMethod().equals("invoke") )
+                || ( ref.getTypeNameString().equals("java.lang.invoke.MethodHandle") && ref.getMethod().startsWith("invoke") )
+                || ( ref.getTypeNameString().equals("sun.rmi.transport.tcp.TCPTransport") && ref.getMethod().equals("listen") )
+                || ( ref.getTypeNameString().endsWith(".TemplatesImpl") && ref.getMethod().equals("newTransformer") )
+                || ( ref.getTypeNameString().equals("java.net.URLClassLoader") && ref.getMethod().equals("newInstance") )
+                || ref.getMethod().equals("halt") ) {
+            return true;
+        }
+
         return false;
     }
 

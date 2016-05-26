@@ -54,7 +54,7 @@ public class SerianalyzerClassMethodVisitor extends ClassVisitor implements Seri
     public SerianalyzerClassMethodVisitor ( Serianalyzer analyzer, MethodReference ref, DotName actualType ) {
         super(Opcodes.ASM5);
         this.actualType = actualType;
-        this.log = Logger.getLogger(Serianalyzer.class.getName() + "." + ref.getTypeNameString() + "." + ref.getMethod()); //$NON-NLS-1$ //$NON-NLS-2$
+        this.log = Verbose.getPerMethodLogger(ref);
         this.analyzer = analyzer;
         this.ref = ref;
         if ( this.log.isTraceEnabled() ) {
@@ -100,7 +100,7 @@ public class SerianalyzerClassMethodVisitor extends ClassVisitor implements Seri
             }
             this.found = true;
             if ( ( access & Opcodes.ACC_NATIVE ) != 0 ) {
-                this.analyzer.getState().nativeCall(this.ref);
+                this.analyzer.getState().reportCall(this.ref);
                 return super.visitMethod(access, name, desc, signature, exceptions);
             }
 
