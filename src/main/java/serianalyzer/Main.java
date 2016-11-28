@@ -27,7 +27,9 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
@@ -60,7 +62,9 @@ public class Main {
             System.err.println("    -i      Read analyzed state (do not run on untrusted inputs ;))"); //$NON-NLS-1$
             System.err.println("    -o      Write analyzed state (do not run on untrusted inputs ;))"); //$NON-NLS-1$
             System.err.println("    -v      Print out verbose output, including progress and timing info (will also be logged regardless)"); //$NON-NLS-1$
-            System.err.println("    -t      Use custom initial method set " + Arrays.toString(InitialSetType.values())); //$NON-NLS-1$
+            System.err.println("    -t      Use custom initial method set (multiple possible) " + Arrays.toString(InitialSetType.values())); //$NON-NLS-1$
+            System.err.println("    -a      Include non-serializable types in analysis"); //$NON-NLS-1$
+            System.err.println("    -j      Don't include default java serialization methods in analysis"); //$NON-NLS-1$
             System.err.println();
             System.exit(-1);
         }
@@ -106,9 +110,11 @@ public class Main {
         List<String> whitelistArgs = new ArrayList<>();
         boolean noHeuristics = false;
         boolean dumpInstantiation = false;
+        boolean includeNonSerializable = false;
+        boolean excludeJavaSerialization = false;
         File saveFile = null;
         File restoreFile = null;
-        InitialSetType initialSet = InitialSetType.JAVA;
+        Set<InitialSetType> initialSet = new HashSet<>();
 
         int i = 0;
         for ( ; i < args.length; i++ ) {
@@ -135,11 +141,18 @@ public class Main {
             }
             else if ( "-t".equals(arg) || "--initialSet".equals(arg) ) { //$NON-NLS-1$ //$NON-NLS-2$
                 i++;
-                initialSet = InitialSetType.valueOf(args[ i ]);
+                initialSet.add(InitialSetType.valueOf(args[ i ]));
+            }
+            else if ( "-a".equals(arg) || "--allTypes".equals(arg) ) { //$NON-NLS-1$ //$NON-NLS-2$
+                includeNonSerializable = true;
             }
             else {
                 break;
             }
+        }
+
+        if ( initialSet.isEmpty() ) {
+            initialSet.add(InitialSetType.JAVA);
         }
 
         SerianalyzerConfig config = new SerianalyzerConfig(noHeuristics, dumpInstantiation);
@@ -157,6 +170,8 @@ public class Main {
 
         config.setSaveTo(saveFile);
         config.setRestoreFrom(restoreFile);
+        config.setCheckJavaSerialization(!excludeJavaSerialization);
+        config.setCheckNonSerializable(includeNonSerializable);
 
         for ( ; i < args.length; i++ ) {
             remainArgs.add(args[ i ]);

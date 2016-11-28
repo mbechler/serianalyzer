@@ -24,6 +24,11 @@ public enum InitialSetType {
     GETTERS,
 
     /**
+     * JAVA + bean setter methods
+     */
+    SETTERS,
+
+    /**
      * JAVA + zero argument methods
      */
     ZEROARGMETHOD,

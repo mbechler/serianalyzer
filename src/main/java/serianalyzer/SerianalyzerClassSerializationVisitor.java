@@ -99,7 +99,7 @@ public class SerianalyzerClassSerializationVisitor extends ClassVisitor implemen
     @Override
     public MethodVisitor visitMethod ( int access, String name, String desc, String signature, String[] exceptions ) {
 
-        if ( isReachableMethod(name, desc, access) ) {
+        if ( !this.analyzer.getConfig().isNoCheckJavaSerialization() && isReachableMethod(name, desc, access) ) {
             if ( this.log.isTraceEnabled() ) {
                 this.log.trace(String.format("Found %s::%s with signature %s", this.clName, name, desc)); //$NON-NLS-1$
             }
@@ -120,8 +120,10 @@ public class SerianalyzerClassSerializationVisitor extends ClassVisitor implemen
 
             return new SerianalyzerMethodVisitor(this, ref, ref.getTypeName());
         }
-        else if ( this.serializable ) {
-            MethodReference ref = new MethodReference(this.clName, false, name, ( access & Modifier.STATIC ) != 0, desc);
+
+        MethodReference ref = new MethodReference(this.clName, false, name, ( access & Modifier.STATIC ) != 0, desc);
+        if ( this.serializable || ( this.analyzer.getConfig().isExtraCheckNonSerializable()
+                && this.analyzer.getConfig().isExtraCheckMethod(ref, this.serializable) ) ) {
             if ( this.analyzer.getConfig().isWhitelisted(ref) ) {
                 if ( this.log.isDebugEnabled() ) {
                     this.log.debug("Whitelisted " + ref); //$NON-NLS-1$
@@ -133,7 +135,7 @@ public class SerianalyzerClassSerializationVisitor extends ClassVisitor implemen
             }
             ref.taintCallee();
             taintArguments(ref, name, desc, access);
-            if ( this.analyzer.getConfig().isExtraCheckMethod(ref) ) {
+            if ( this.analyzer.getConfig().isExtraCheckMethod(ref, this.serializable) ) {
                 this.getAnalyzer().getState().addInitial(ref);
                 return new SerianalyzerMethodVisitor(this, ref, ref.getTypeName());
             }

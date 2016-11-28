@@ -47,6 +47,7 @@ import org.apache.log4j.Logger;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.Index;
+import org.jboss.jandex.MethodInfo;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Type;
 
@@ -228,15 +229,42 @@ public class Serianalyzer {
         if ( this.getState().getStage().equals(Stage.CHECK_CLASS) ) {
             long time = System.currentTimeMillis();
 
-            Set<ClassInfo> serializable = this.input.getIndex().getAllKnownImplementors(DotName.createSimple(Serializable.class.getName()));
-            Verbose.println(String.format("Found %d serializable classes", serializable.size())); //$NON-NLS-1$
+            Collection<ClassInfo> clazzes;
+            if ( !this.getConfig().isExtraCheckNonSerializable() ) {
+                clazzes = this.input.getIndex().getAllKnownImplementors(DotName.createSimple(Serializable.class.getName()));
+            }
+            else {
+                clazzes = new LinkedList<>();
+                for ( ClassInfo cl : this.input.getIndex().getKnownClasses() ) {
+                    boolean foundDefaultConstructor = false;
+                    for ( MethodInfo methodInfo : cl.methods() ) {
+                        if ( !"<init>".equals(methodInfo.name()) ) { //$NON-NLS-1$
+                            continue;
+                        }
+
+                        if ( ( methodInfo.flags() & Modifier.PUBLIC ) == 0 ) {
+                            continue;
+                        }
+
+                        if ( methodInfo.parameters().size() > 0 ) {
+                            continue;
+                        }
+                        foundDefaultConstructor = true;
+                    }
+                    if ( foundDefaultConstructor ) {
+                        clazzes.add(cl);
+                    }
+                }
+            }
+
+            Verbose.println(String.format("Found %d serializable classes", clazzes.size())); //$NON-NLS-1$
 
             int count = 0;
-            for ( ClassInfo ci : serializable ) {
+            for ( ClassInfo ci : clazzes ) {
                 count++;
 
                 if ( ( count % 100 ) == 0 ) {
-                    Verbose.println("Checking class " + count + " of " + serializable.size()); //$NON-NLS-1$ //$NON-NLS-2$
+                    Verbose.println("Checking class " + count + " of " + clazzes.size()); //$NON-NLS-1$ //$NON-NLS-2$
                 }
 
                 if ( this.input.getConfig().isWhitelistedClass(ci.name().toString()) ) {

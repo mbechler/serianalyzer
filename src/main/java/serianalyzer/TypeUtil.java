@@ -245,7 +245,10 @@ public final class TypeUtil {
         Collection<ClassInfo> impls;
 
         if ( isFinalObjectMethod(methodReference) ) {
-            return Arrays.asList(i.getClassByName(DotName.createSimple("java.lang.Object"))); //$NON-NLS-1$
+            ClassInfo obj = i.getClassByName(DotName.createSimple("java.lang.Object")); //$NON-NLS-1$
+            if ( obj != null ) {
+                return Arrays.asList(obj);
+            }
         }
 
         DotName tn = methodReference.getTypeName();

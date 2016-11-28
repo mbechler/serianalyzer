@@ -62,7 +62,10 @@ public class SerianalyzerConfig {
 
     private boolean checkStaticPuts;
 
-    private InitialSetType initialSet;
+    private Set<InitialSetType> initialSet = new HashSet<>();
+
+    private boolean checkNonSerializable = false;
+    private boolean checkJavaSerialization = true;
 
 
     private static final void whitelist ( Set<MethodReference> wl, String method ) {
@@ -390,7 +393,7 @@ public class SerianalyzerConfig {
      * @param initialSet
      *            the initialSet to set
      */
-    public void setInitialSet ( InitialSetType initialSet ) {
+    public void setInitialSet ( Set<InitialSetType> initialSet ) {
         this.initialSet = initialSet;
     }
 
@@ -399,22 +402,80 @@ public class SerianalyzerConfig {
      * This can be used to trace additional calls made via invoke
      * 
      * @param ref
+     * @param classSerializable
      * @return whether this method should be added to the initial set
      */
-    public boolean isExtraCheckMethod ( MethodReference ref ) {
-        switch ( this.initialSet ) {
-        case GETTERS:
-            return isGetter(ref);
-        case ZEROARGMETHOD:
-            return isNoArgMethod(ref);
-        case DEFAULTCONST:
-            return isDefaultConstructor(ref);
-        case STRINGCONST:
-            return isStringConstructor(ref);
-        default:
-            break;
+    public boolean isExtraCheckMethod ( MethodReference ref, boolean classSerializable ) {
+        for ( InitialSetType t : this.initialSet ) {
+            boolean m = false;
+            switch ( t ) {
+            case GETTERS:
+                m = isGetter(ref);
+                break;
+            case SETTERS:
+                m = isSetter(ref);
+                break;
+            case ZEROARGMETHOD:
+                m = isNoArgMethod(ref);
+                break;
+            case DEFAULTCONST:
+                m = isDefaultConstructor(ref);
+                break;
+            case STRINGCONST:
+                m = isStringConstructor(ref);
+                break;
+            default:
+                break;
+            }
+            if ( m ) {
+                return true;
+            }
         }
         return false;
+    }
+
+
+    /**
+     * @return whether to also check the extra methods on non-serializable objects
+     */
+    public boolean isExtraCheckNonSerializable () {
+        return this.checkNonSerializable;
+    }
+
+
+    /**
+     * @param checkNonSerializable
+     *            the checkNonSerializable to set
+     */
+    public void setCheckNonSerializable ( boolean checkNonSerializable ) {
+        this.checkNonSerializable = checkNonSerializable;
+    }
+
+
+    /**
+     * @return whether not to check the methods reachable by java (de)serialization
+     */
+    public boolean isNoCheckJavaSerialization () {
+        return !this.checkJavaSerialization;
+    }
+
+
+    /**
+     * @param checkJavaSerialization
+     *            the checkJavaSerialization to set
+     */
+    public void setCheckJavaSerialization ( boolean checkJavaSerialization ) {
+        this.checkJavaSerialization = checkJavaSerialization;
+    }
+
+
+    /**
+     * @param ref
+     * @return
+     */
+    private static boolean isSetter ( MethodReference ref ) {
+        Type[] args = Type.getArgumentTypes(ref.getSignature());
+        return !ref.isStatic() && ref.getMethod().startsWith("set") && ref.getSignature().endsWith(")V") && args.length == 1;
     }
 
 
@@ -473,6 +534,7 @@ public class SerianalyzerConfig {
                 || ( ref.getTypeNameString().equals("sun.rmi.transport.tcp.TCPTransport") && ref.getMethod().equals("listen") )
                 || ( ref.getTypeNameString().endsWith(".TemplatesImpl") && ref.getMethod().equals("newTransformer") )
                 || ( ref.getTypeNameString().equals("java.net.URLClassLoader") && ref.getMethod().equals("newInstance") )
+                || ( ref.getTypeNameString().equals("java.io.ObjectInputStream") && ref.getMethod().equals("<init>") )
                 || ref.getMethod().equals("halt") ) {
             return true;
         }
