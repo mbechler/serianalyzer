@@ -19,27 +19,57 @@ public enum InitialSetType {
     JAVA,
 
     /**
-     * JAVA + bean getter methods
+     * bean getter methods
      */
     GETTERS,
 
     /**
-     * JAVA + bean setter methods
+     * bean setter methods
      */
     SETTERS,
 
     /**
-     * JAVA + zero argument methods
+     * zero argument methods
      */
     ZEROARGMETHOD,
 
     /**
-     * JAVA + zero argument constructor
+     * zero argument constructor
      */
     DEFAULTCONST,
 
     /**
-     * JAVA + one argument string constructor
+     * one argument string constructor
      */
-    STRINGCONST
+    STRINGCONST,
+
+    /**
+     * all constructors
+     */
+    ALLCONST,
+
+    /**
+     * Finalizers
+     */
+    FINALIZE,
+
+    /**
+     * Methods commonly called (toString(),hashCode(),equals(Object),java.lang.Comparable->compareTo(Object))
+     */
+    COMMON,
+
+    /**
+     * Castor extra methods addXXX/createXXX
+     */
+    CASTOR,
+
+    /**
+     * Proxy invocation handler
+     */
+    PROXY,
+
+    /**
+     * readReplace invocation
+     */
+    READ_RESOLVE
 }

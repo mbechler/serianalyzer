@@ -424,6 +424,26 @@ public class SerianalyzerConfig {
             case STRINGCONST:
                 m = isStringConstructor(ref);
                 break;
+            case ALLCONST:
+                m = "<init>".equals(ref.getMethod());
+                break;
+            case FINALIZE:
+                m = "finalize".equals(ref.getMethod());
+                break;
+            case COMMON:
+                m = isCommonMethod(ref);
+                break;
+            case CASTOR:
+                m = isCastorExtraMethod(ref);
+                break;
+            case PROXY:
+                m = "invoke".equals(ref.getMethod()) //$NON-NLS-1$
+                        && "(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;" //$NON-NLS-1$
+                                .equals(ref.getSignature());
+                break;
+            case READ_RESOLVE:
+                m = "readResolve".equals(ref.getMethod());
+                break;
             default:
                 break;
             }
@@ -475,7 +495,8 @@ public class SerianalyzerConfig {
      */
     private static boolean isSetter ( MethodReference ref ) {
         Type[] args = Type.getArgumentTypes(ref.getSignature());
-        return !ref.isStatic() && ref.getMethod().startsWith("set") && ref.getSignature().endsWith(")V") && args.length == 1;
+        return !ref.isStatic() && ref.getMethod().startsWith("set") && ref.getMethod().length() > 3
+                && Character.isUpperCase(ref.getMethod().charAt(3)) && ref.getSignature().endsWith(")V") && args.length == 1;
     }
 
 
@@ -495,7 +516,27 @@ public class SerianalyzerConfig {
 
 
     protected boolean isGetter ( MethodReference ref ) {
-        return ref.getMethod().startsWith("get") && ref.getSignature().startsWith("()");
+        return !ref.isStatic() && ref.getMethod().startsWith("get") && ref.getSignature().startsWith("()");
+    }
+
+
+    /**
+     * @param ref
+     * @return
+     */
+    private static boolean isCommonMethod ( MethodReference ref ) {
+        return !ref.isStatic() && ( "hashCode".equals(ref.getMethod()) || "equals".equals(ref.getMethod()) || "toString".equals(ref.getMethod())
+                || "compareTo".equals(ref.getMethod()) );
+    }
+
+
+    /**
+     * @param ref
+     * @return
+     */
+    private static boolean isCastorExtraMethod ( MethodReference ref ) {
+        return !ref.isStatic()
+                && ( ref.getMethod().startsWith("add") || ( ref.getMethod().startsWith("create") && ref.getSignature().startsWith("()") ) );
     }
 
 
@@ -515,8 +556,8 @@ public class SerianalyzerConfig {
      * @return whether
      */
     public boolean isConsiderReachable ( boolean serializable, String name, String signature, int access ) {
-        return ( serializable && "toString".equals(name) ) || ( serializable && "hashCode".equals(name) ) || ( serializable && "equals".equals(name) )
-                || ( serializable && "compareTo".equals(name) );
+        boolean include = this.checkNonSerializable || serializable;
+        return ( include && "hashCode".equals(name) ) || ( include && "equals".equals(name) ) || ( include && "compareTo".equals(name) );
     }
 
 
@@ -535,6 +576,7 @@ public class SerianalyzerConfig {
                 || ( ref.getTypeNameString().endsWith(".TemplatesImpl") && ref.getMethod().equals("newTransformer") )
                 || ( ref.getTypeNameString().equals("java.net.URLClassLoader") && ref.getMethod().equals("newInstance") )
                 || ( ref.getTypeNameString().equals("java.io.ObjectInputStream") && ref.getMethod().equals("<init>") )
+                || ( ref.getTypeNameString().equals("java.lang.ClassLoader") && ref.getMethod().endsWith("loadClass") )
                 || ref.getMethod().equals("halt") ) {
             return true;
         }

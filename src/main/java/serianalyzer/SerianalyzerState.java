@@ -316,13 +316,6 @@ public class SerianalyzerState implements Serializable {
      * @param ref
      */
     void addInitial ( MethodReference ref ) {
-        /*
-         * if ( !initial.contains( ref.comparable() ) ) {
-         * System.err.println( "Initial method found: " + String.format( "%s->%s %s", ref.getTypeNameString(),
-         * ref.getMethod(), ref.getSignature() ) );
-         * }
-         */
-
         this.initial.add(ref.comparable());
     }
 

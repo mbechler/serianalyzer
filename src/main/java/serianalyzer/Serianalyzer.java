@@ -410,15 +410,24 @@ public class Serianalyzer {
             cal = cal.comparable();
 
             if ( this.input.getConfig().isWhitelisted(cal) ) {
+                if ( log.isDebugEnabled() ) {
+                    log.debug("Is whitelisted " + cal); //$NON-NLS-1$
+                }
                 continue;
             }
 
             Set<MethodReference> callers = this.state.getMethodCallers().get(cal);
             if ( callers == null || callers.isEmpty() ) {
+                if ( log.isDebugEnabled() ) {
+                    log.debug("Does not have caller " + cal); //$NON-NLS-1$
+                }
                 continue;
             }
 
             if ( !dumpBacktraces(cal, this.state.getInitial(), usedInstantiable, "", maxDumps) ) { //$NON-NLS-1$
+                if ( log.isDebugEnabled() ) {
+                    log.debug("Not determined to be reachable " + cal); //$NON-NLS-1$
+                }
                 continue;
             }
             System.out.flush();
@@ -981,8 +990,8 @@ public class Serianalyzer {
         }
 
         if ( this.getConfig().isStopMethod(initialRef) ) {
+            this.state.traceCalls(initialRef, cal);
             if ( this.reported.add(initialRef.comparable()) ) {
-                this.state.traceCalls(initialRef, cal);
                 this.getState().reportCall(initialRef);
                 Verbose.println(String.format(
                     "Encountered method %s->%s %s", //$NON-NLS-1$

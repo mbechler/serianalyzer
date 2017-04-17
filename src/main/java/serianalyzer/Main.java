@@ -146,6 +146,9 @@ public class Main {
             else if ( "-a".equals(arg) || "--allTypes".equals(arg) ) { //$NON-NLS-1$ //$NON-NLS-2$
                 includeNonSerializable = true;
             }
+            else if ( "-j".equals(arg) || "--noJavaDeserializtion".equals(arg) ) { //$NON-NLS-1$ //$NON-NLS-2$
+                excludeJavaSerialization = true;
+            }
             else {
                 break;
             }
